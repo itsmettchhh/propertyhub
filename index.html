@@ -59,7 +59,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .tx-list{margin-top:15px}.tx{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.tx small{color:var(--muted)}.tx-actions{display:flex;gap:5px}
 .mobile-menu{display:none}
 .mobile-auth{display:none}
-.mobile-auth-status{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.mobile-auth-status{display:flex;align-items:center;gap:8px;min-width:0;flex:1}.mobile-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 28px;background:#e5e7eb;border:1px solid var(--line)}
 .mobile-auth-status .auth-email{color:var(--text);font-size:12px}
 .mobile-auth-status .auth-login{color:var(--primary);font-size:12px}
 .mobile-auth .auth-dot{flex:0 0 auto}
@@ -95,7 +95,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 
   <main class="main">
     <div class="mobile-auth" id="mobileAuthStatus">
-      <div class="mobile-auth-status"><span class="auth-dot" id="mobileAuthDot"></span><span class="auth-email" id="mobileAuthEmail">Chưa đăng nhập</span></div>
+      <div class="mobile-auth-status"><img class="mobile-avatar" id="mobileAuthAvatar" alt="Avatar"><span class="auth-dot" id="mobileAuthDot"></span><span class="auth-email" id="mobileAuthEmail">Chưa đăng nhập</span></div>
       <a class="auth-login" id="mobileAuthLogin" onclick="openAuthModal()">Đăng nhập</a>
     </div>
     <div class="topbar">
@@ -366,15 +366,16 @@ async function initAuth(){
 }
 function updateAuthUI(){
   const e=document.getElementById('authEmail'),a=document.querySelector('.sidebar .auth-login'),d=document.getElementById('authDot');
-  const me=document.getElementById('mobileAuthEmail'),ma=document.getElementById('mobileAuthLogin'),md=document.getElementById('mobileAuthDot');
+  const me=document.getElementById('mobileAuthEmail'),ma=document.getElementById('mobileAuthLogin'),md=document.getElementById('mobileAuthDot'),mav=document.getElementById('mobileAuthAvatar');
   if(currentUser){
     const m=currentUser.user_metadata||{};
     const name=m.user_name||m.preferred_username||m.full_name||currentUser.email||'Đã đăng nhập';
+    const avatar=m.avatar_url||m.picture||'';
     e.textContent=name; a.textContent='Đăng xuất'; a.onclick=signOut; d.classList.add('ok');
-    if(me){me.textContent=name;ma.textContent='Đăng xuất';ma.onclick=signOut;md.classList.add('ok');}
+    if(me){me.textContent=name;ma.textContent='Đăng xuất';ma.onclick=signOut;md.classList.add('ok');if(mav){mav.src=avatar||'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#e5e7eb"/><circle cx="32" cy="24" r="11" fill="#9ca3af"/><path d="M12 58c2-13 10-19 20-19s18 6 20 19" fill="#9ca3af"/></svg>');}} 
   }else{
     e.textContent='Chưa đăng nhập'; a.textContent='Đăng nhập'; a.onclick=openAuthModal; d.classList.remove('ok');
-    if(me){me.textContent='Chưa đăng nhập';ma.textContent='Đăng nhập';ma.onclick=openAuthModal;md.classList.remove('ok');}
+    if(me){me.textContent='Chưa đăng nhập';ma.textContent='Đăng nhập GitHub';ma.onclick=openAuthModal;md.classList.remove('ok');if(mav)mav.removeAttribute('src');}
   }
 }
 function openAuthModal(){
