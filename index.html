@@ -49,6 +49,8 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .bar-col{flex:1;height:100%;display:flex;align-items:end;justify-content:center;position:relative}.bar{width:75%;max-width:42px;border-radius:7px 7px 0 0;background:linear-gradient(180deg,var(--primary2),var(--primary));min-height:3px}.bar-col span{position:absolute;bottom:-23px;font-size:10px;color:var(--muted)}
 .two{grid-template-columns:1.4fr 1fr;margin-bottom:18px}
 .badge{font-size:10px;border-radius:99px;padding:4px 8px;background:#f0edff;color:#5545ce;font-weight:700}
+
+.asset-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.asset-card{padding:18px;position:relative}.asset-top{display:flex;justify-content:space-between;gap:12px}.asset-name{font-weight:800;font-size:15px}.asset-meta{font-size:12px;color:var(--muted);margin-top:4px}.asset-value{font-size:23px;font-weight:800;margin-top:18px}.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.asset-mini{background:#f8f9fc;padding:9px;border-radius:10px}.asset-mini span{display:block;font-size:10px;color:var(--muted)}.asset-mini b{font-size:12px}.asset-actions{display:flex;gap:7px;margin-top:14px}.asset-actions button{flex:1;font-size:12px;padding:8px 10px}.progress{height:7px;background:#edf0f5;border-radius:99px;overflow:hidden}.progress i{display:block;height:100%;border-radius:99px}.asset-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.asset-row:last-child{border-bottom:0}.asset-icon{width:34px;height:34px;border-radius:10px;background:#f0edff;color:var(--primary);display:grid;place-items:center;font-weight:800}
 .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
 .modal-backdrop.show{display:flex}.modal{background:#fff;border-radius:18px;width:min(760px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 70px rgba(0,0,0,.2)}
 .modal-head{padding:20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0}.modal-body{padding:20px}.modal-foot{padding:16px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
@@ -56,8 +58,8 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .tx-list{margin-top:15px}.tx{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.tx small{color:var(--muted)}.tx-actions{display:flex;gap:5px}
 .mobile-menu{display:none}
 .toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;z-index:100;font-size:13px}.toast.show{opacity:1;transform:translateY(0)}
-@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
-@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list,.asset-list{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -69,6 +71,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
       <button class="active" data-page="dashboard">▦ &nbsp; Dashboard</button>
       <button data-page="jobs">▣ &nbsp; Các nguồn thu</button>
       <button data-page="transactions">↕ &nbsp; Giao dịch</button>
+      <button data-page="assets">◈ &nbsp; Tài sản</button>
       <small>Dữ liệu</small>
       <button onclick="exportData()">↓ &nbsp; Xuất dữ liệu</button>
       <button onclick="document.getElementById('importFile').click()">↑ &nbsp; Nhập dữ liệu</button>
@@ -95,7 +98,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
         <div class="card stat"><div class="label">GROSS — năm <span class="yearLabel"></span></div><div class="value" id="grossTotal">0</div><div class="sub">Tổng thu nhập trước thuế</div></div>
         <div class="card stat"><div class="label">TAX</div><div class="value red" id="taxTotal">0</div><div class="sub">Tổng thuế / khấu trừ</div></div>
         <div class="card stat"><div class="label">NET</div><div class="value green" id="netTotal">0</div><div class="sub">Thực nhận sau thuế</div></div>
-        <div class="card stat"><div class="label">THU NHẬP BÌNH QUÂN</div><div class="value" id="avgNet">0</div><div class="sub">Theo các tháng có phát sinh</div></div>
+        <div class="card stat"><div class="label">TỔNG TÀI SẢN</div><div class="value" id="assetTotal">0</div><div class="sub">Giá trị tài sản đang theo dõi</div></div>
       </div>
 
       <div class="grid two">
@@ -114,6 +117,17 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
         <div class="table-wrap"><table class="table" id="monthTable"></table></div>
       </div>
 
+      <div class="grid two" style="margin-top:18px">
+        <div class="card section">
+          <div class="section-head"><div><h2>Tài sản tích lũy</h2><span class="muted">Giá trị hiện tại</span></div><button class="btn btn-light" onclick="showPage('assets')">Quản lý →</button></div>
+          <div id="assetDashboardSummary"></div>
+        </div>
+        <div class="card section">
+          <div class="section-head"><div><h2>Phân bổ tài sản</h2><span class="muted">Theo nhóm</span></div></div>
+          <div id="assetCategoryBreakdown"></div>
+        </div>
+      </div>
+
       <div class="card section" style="margin-top:18px">
         <div class="section-head"><div><h2>Các nguồn thu</h2><span class="muted">Bấm “Chi tiết” để quản lý từng job</span></div><button class="btn btn-light" onclick="showPage('jobs')">Xem tất cả →</button></div>
         <div class="job-list" id="jobList"></div>
@@ -122,6 +136,19 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 
     <section id="jobsPage" style="display:none">
       <div class="card section"><div class="section-head"><div><h2>Quản lý nguồn thu</h2><span class="muted">Tạo, sửa, xóa và theo dõi từng job độc lập</span></div><button class="btn btn-primary" onclick="openJobModal()">＋ Thêm job</button></div><div class="job-list" id="allJobs"></div></div>
+    </section>
+
+    <section id="assetsPage" style="display:none">
+      <div class="grid stats asset-stats">
+        <div class="card stat"><div class="label">TỔNG TÀI SẢN</div><div class="value" id="assetPageTotal">0</div><div class="sub">Giá trị hiện tại</div></div>
+        <div class="card stat"><div class="label">VỐN GỐC</div><div class="value" id="assetCostTotal">0</div><div class="sub">Số tiền đã bỏ vào</div></div>
+        <div class="card stat"><div class="label">LÃI / LỖ</div><div class="value" id="assetGainTotal">0</div><div class="sub">Giá trị hiện tại − vốn gốc</div></div>
+        <div class="card stat"><div class="label">SỐ TÀI SẢN</div><div class="value" id="assetCount">0</div><div class="sub">Đang theo dõi</div></div>
+      </div>
+      <div class="card section" style="margin-bottom:18px">
+        <div class="section-head"><div><h2>Danh mục tài sản</h2><span class="muted">Ngân hàng · Vàng · Đầu tư · Tiền mặt · BĐS...</span></div><div class="actions"><select class="input" id="assetFilter" onchange="renderAssets()"><option value="">Tất cả nhóm</option><option>Ngân hàng</option><option>Vàng</option><option>Chứng khoán / Quỹ</option><option>Crypto</option><option>BĐS</option><option>Tiền mặt</option><option>Khác</option></select><button class="btn btn-primary" onclick="openAssetModal()">＋ Thêm tài sản</button></div></div>
+        <div id="assetList" class="asset-list"></div>
+      </div>
     </section>
 
     <section id="transactionsPage" style="display:none">
@@ -143,6 +170,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 const KEY='incomehub_v1';
 const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
 const defaultData={
+  assets:[],
   jobs:[
     {id:'tbrain',name:'TBRAIN',type:'Freelance',color:'#4d3bd1',note:'Labeler / freelance'},
     {id:'worldquant',name:'WORLDQUANT',type:'Freelance',color:'#0e4c78',note:'BRAIN / Alpha'},
@@ -177,7 +205,7 @@ const defaultData={
 let data=load();
 let currentPage='dashboard';
 
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData)}catch(e){return structuredClone(defaultData)}}
+function load(){try{let x=JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData);x.assets=x.assets||[];return x}catch(e){return structuredClone(defaultData)}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data))}
 function money(n){return new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+' ₫'}
 function dateParts(d){let x=new Date(d+'T00:00:00');return {y:x.getFullYear(),m:x.getMonth()+1}}
@@ -185,6 +213,10 @@ function year(){return +document.getElementById('yearSelect').value}
 function job(id){return data.jobs.find(x=>x.id===id)}
 function net(t){return t.net!==undefined ? (+t.net||0) : ((+t.gross||0)-(+t.tax||0))}
 function txYear(y){return data.tx.filter(t=>dateParts(t.date).y===y)}
+function assetTotal(){return data.assets.reduce((a,x)=>a+(+x.value||0),0)}
+function assetCost(){return data.assets.reduce((a,x)=>a+(+x.cost||0),0)}
+function assetGain(){return assetTotal()-assetCost()}
+function assetCategoryTotal(cat){return data.assets.filter(x=>x.category===cat).reduce((a,x)=>a+(+x.value||0),0)}
 function sum(arr,key){return arr.reduce((a,b)=>a+(+b[key]||0),0)}
 function showToast(s){let e=document.getElementById('toast');e.textContent=s;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
 
@@ -200,6 +232,7 @@ function render(){
   if(currentPage==='dashboard')renderDashboard();
   if(currentPage==='jobs')renderJobs();
   if(currentPage==='transactions')renderTransactions();
+  if(currentPage==='assets')renderAssets();
 }
 function showPage(p){
   currentPage=p;
@@ -207,7 +240,8 @@ function showPage(p){
   document.getElementById('dashboardPage').style.display=p==='dashboard'?'block':'none';
   document.getElementById('jobsPage').style.display=p==='jobs'?'block':'none';
   document.getElementById('transactionsPage').style.display=p==='transactions'?'block':'none';
-  document.getElementById('pageTitle').textContent=p==='dashboard'?'Dashboard thu nhập':p==='jobs'?'Các nguồn thu':'Giao dịch';
+  document.getElementById('assetsPage').style.display=p==='assets'?'block':'none';
+  document.getElementById('pageTitle').textContent=p==='dashboard'?'Dashboard thu nhập':p==='jobs'?'Các nguồn thu':p==='transactions'?'Giao dịch':'Tài sản';
   render();
 }
 document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
@@ -217,6 +251,8 @@ function renderDashboard(){
   document.getElementById('grossTotal').textContent=money(gross);
   document.getElementById('taxTotal').textContent=money(tax);
   document.getElementById('netTotal').textContent=money(nt);
+  document.getElementById('assetTotal').textContent=money(assetTotal());
+  renderAssetDashboard();
   let active=[...Array(12)].map((_,i)=>tx.filter(t=>dateParts(t.date).m===i+1)).filter(a=>a.length);
   document.getElementById('avgNet').textContent=money(active.length?active.reduce((a,b)=>a+b.reduce((x,t)=>x+net(t),0),0)/active.length:0);
   let monthNet=[...Array(12)].map((_,i)=>{let a=tx.filter(t=>dateParts(t.date).m===i+1);return a.reduce((x,t)=>x+net(t),0)});
@@ -239,6 +275,35 @@ function renderTransactions(){
   document.getElementById('txTable').innerHTML='<thead><tr><th>Ngày</th><th>Job</th><th>GROSS</th><th>TAX</th><th>NET</th><th>Ghi chú</th><th></th></tr></thead><tbody>'+
   (tx.length?tx.map(t=>`<tr><td>${t.date}</td><td><b>${job(t.job)?.name||'—'}</b></td><td>${money(t.gross)}</td><td class="red">${money(t.tax)}</td><td class="green"><b>${money(net(t))}</b></td><td>${t.note||'—'}</td><td><button class="btn btn-light" onclick="openTxModal('${t.id}')">Sửa</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">Xóa</button></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty">Chưa có giao dịch trong năm này.</div></td></tr>')+'</tbody>';
 }
+
+
+function assetIcon(cat){return ({'Ngân hàng':'₫','Vàng':'Au','Chứng khoán / Quỹ':'↗','Crypto':'₿','BĐS':'⌂','Tiền mặt':'$','Khác':'◆'}[cat]||'◆')}
+function assetProfit(x){return (+x.value||0)-(+x.cost||0)}
+function assetProfitPct(x){return x.cost?(assetProfit(x)/x.cost*100):0}
+function renderAssetDashboard(){
+  let total=assetTotal(), cats=[...new Set(data.assets.map(x=>x.category))].map(c=>({c,v:assetCategoryTotal(c)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  document.getElementById('assetDashboardSummary').innerHTML=data.assets.length?data.assets.slice().sort((a,b)=>b.value-a.value).slice(0,4).map(x=>`<div class="asset-row"><div style="display:flex;align-items:center;gap:10px"><div class="asset-icon">${assetIcon(x.category)}</div><div><b>${esc(x.name)}</b><div class="muted">${esc(x.category)}</div></div></div><b>${money(x.value)}</b></div>`).join(''):`<div class="empty">Chưa có tài sản. Hãy thêm tài sản đầu tiên.</div>`;
+  document.getElementById('assetCategoryBreakdown').innerHTML=cats.length?cats.map(x=>`<div style="margin:13px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${esc(x.c)}</span><b>${money(x.v)}</b></div><div class="progress" style="margin-top:7px"><i style="width:${total?x.v/total*100:0}%;background:var(--primary)"></i></div></div>`).join(''):`<div class="empty">Chưa có dữ liệu</div>`;
+}
+function renderAssets(){
+  let f=document.getElementById('assetFilter')?.value||'', arr=data.assets.filter(x=>!f||x.category===f);
+  let total=assetTotal(),cost=assetCost(),gain=assetGain();
+  document.getElementById('assetPageTotal').textContent=money(total);document.getElementById('assetCostTotal').textContent=money(cost);document.getElementById('assetGainTotal').textContent=money(gain);document.getElementById('assetGainTotal').className='value '+(gain>=0?'green':'red');document.getElementById('assetCount').textContent=data.assets.length;
+  document.getElementById('assetList').innerHTML=arr.length?arr.map(x=>{let p=assetProfit(x),pct=assetProfitPct(x);return `<div class="card asset-card"><div class="asset-top"><div><div class="asset-name"><i class="dot" style="background:${x.color||'#5b4bdb'};margin-right:7px"></i>${esc(x.name)}</div><div class="asset-meta">${esc(x.category)}${x.institution?' · '+esc(x.institution):''}</div></div><span class="badge">${esc(x.updated||'Chưa cập nhật')}</span></div><div class="asset-value">${money(x.value)}</div><div class="asset-grid"><div class="asset-mini"><span>Vốn gốc</span><b>${money(x.cost)}</b></div><div class="asset-mini"><span>Lãi / lỗ</span><b class="${p>=0?'green':'red'}">${money(p)} (${pct.toFixed(1)}%)</b></div></div>${x.rate?`<div class="muted" style="margin-top:10px">Lãi suất / kỳ vọng: <b>${esc(x.rate)}%</b>${x.maturity?' · Đáo hạn: '+esc(x.maturity):''}</div>`:''}<div class="asset-actions"><button class="btn btn-light" onclick="openAssetModal('${x.id}')">Sửa</button><button class="btn btn-light" onclick="updateAssetValue('${x.id}')">Cập nhật giá trị</button><button class="btn btn-danger" onclick="deleteAsset('${x.id}')">Xóa</button></div></div>`}).join(''):'<div class="empty" style="grid-column:1/-1">Không có tài sản phù hợp.</div>';
+}
+function openAssetModal(id=null){
+  let x=id?data.assets.find(a=>a.id===id):{name:'',category:'Ngân hàng',institution:'',value:'',cost:'',rate:'',maturity:'',color:'#5b4bdb',note:'',updated:''};
+  openModal(id?'Chỉnh sửa tài sản':'Thêm tài sản',`<div class="form-grid"><div class="field"><label>Tên tài sản *</label><input class="input" id="aName" value="${esc(x.name)}" placeholder="VD: Tiết kiệm BIDV 12 tháng"></div><div class="field"><label>Nhóm tài sản</label><select class="input" id="aCategory">${['Ngân hàng','Vàng','Chứng khoán / Quỹ','Crypto','BĐS','Tiền mặt','Khác'].map(c=>`<option ${x.category===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="field"><label>Tổ chức / nơi giữ</label><input class="input" id="aInstitution" value="${esc(x.institution||'')}" placeholder="VD: BIDV, SJC, SSI..."></div><div class="field"><label>Màu nhận diện</label><input class="input" id="aColor" type="color" value="${x.color||'#5b4bdb'}" style="height:42px;padding:4px"></div><div class="field"><label>Giá trị hiện tại *</label><input class="input" id="aValue" type="number" value="${x.value??''}"></div><div class="field"><label>Vốn gốc</label><input class="input" id="aCost" type="number" value="${x.cost??''}"></div><div class="field"><label>Lãi suất / kỳ vọng (%)</label><input class="input" id="aRate" type="number" step="0.01" value="${x.rate??''}" placeholder="VD: 6.8"></div><div class="field"><label>Ngày đáo hạn</label><input class="input" id="aMaturity" type="date" value="${x.maturity||''}"></div><div class="field full"><label>Ghi chú</label><textarea class="input" id="aNote" placeholder="Số tài khoản, kỳ hạn, chiến lược đầu tư...">${esc(x.note||'')}</textarea></div></div>`,`<button class="btn btn-light" onclick="closeModal()">Hủy</button>${id?`<button class="btn btn-danger" onclick="deleteAsset('${id}')">Xóa</button>`:''}<button class="btn btn-primary" onclick="saveAsset('${id||''}')">Lưu tài sản</button>`);
+}
+function saveAsset(id){
+  let name=document.getElementById('aName').value.trim();if(!name)return alert('Vui lòng nhập tên tài sản.');
+  let obj={name,category:document.getElementById('aCategory').value,institution:document.getElementById('aInstitution').value.trim(),value:+document.getElementById('aValue').value||0,cost:+document.getElementById('aCost').value||0,rate:document.getElementById('aRate').value,maturity:document.getElementById('aMaturity').value,color:document.getElementById('aColor').value,note:document.getElementById('aNote').value.trim(),updated:new Date().toISOString().slice(0,10)};
+  if(id){let old=data.assets.find(a=>a.id===id);Object.assign(old,obj);old.history=old.history||[];old.history.push({date:obj.updated,value:obj.value});}else{obj.id='a_'+Date.now();obj.history=[{date:obj.updated,value:obj.value}];data.assets.push(obj)}
+  save();closeModal();render();showToast('Đã lưu tài sản');
+}
+function updateAssetValue(id){let x=data.assets.find(a=>a.id===id);openModal('Cập nhật giá trị',`<div class="field"><label>${esc(x.name)} — Giá trị hiện tại</label><input class="input" id="newAssetValue" type="number" value="${x.value}"></div><p class="muted">Mỗi lần cập nhật sẽ được lưu vào lịch sử để sau này có thể theo dõi biến động tài sản.</p>`,`<button class="btn btn-light" onclick="closeModal()">Hủy</button><button class="btn btn-primary" onclick="saveAssetValue('${id}')">Cập nhật</button>`)}
+function saveAssetValue(id){let x=data.assets.find(a=>a.id===id),v=+document.getElementById('newAssetValue').value||0,d=new Date().toISOString().slice(0,10);x.value=v;x.updated=d;x.history=x.history||[];x.history.push({date:d,value:v});save();closeModal();render();showToast('Đã cập nhật giá trị')}
+function deleteAsset(id){if(!confirm('Xóa tài sản này?'))return;data.assets=data.assets.filter(x=>x.id!==id);save();render();showToast('Đã xóa tài sản')}
 
 function openModal(title,body,foot){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modalFoot').innerHTML=foot||'';document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
