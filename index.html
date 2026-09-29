@@ -105,6 +105,8 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .auth-login{color:#fff;text-decoration:none;font-weight:700;cursor:pointer}
 .sync-pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#eef2ff;color:#4f46e5;font-weight:700}
 
+
+.profile-card{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;padding:24px}.profile-avatar{width:82px;height:82px;border-radius:50%;object-fit:cover;border:4px solid color-mix(in srgb,var(--primary) 18%,var(--card))}.profile-name{font-size:22px;font-weight:800}.profile-email{color:var(--muted);margin-top:4px;font-size:13px}.profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}.profile-stat{padding:18px}.profile-stat .v{font-size:22px;font-weight:800;margin-top:5px}.settings-list{display:grid;gap:12px}.setting-row{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid var(--line)}.setting-row:last-child{border-bottom:0}.setting-title{font-weight:800}.setting-desc{font-size:12px;color:var(--muted);margin-top:3px}.login-gate{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);z-index:80;display:grid;place-items:center;padding:24px}.login-gate-card{width:min(460px,100%);text-align:center;padding:34px}.login-gate-icon{width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:linear-gradient(135deg,#8c7cff,#5b4bdb);color:#fff;display:grid;place-items:center;font-size:28px;box-shadow:0 14px 30px rgba(91,75,219,.25)}.quick-actions{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 18px}.quick-actions .btn{flex:0 0 auto}
 .toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;z-index:100;font-size:13px}.toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list,.asset-list,.goal-grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
 @media(max-width:900px){.kpi-strip{grid-template-columns:1fr}.goal-grid{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.mobile-auth{display:flex !important;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:12px;box-shadow:var(--shadow);min-height:48px}.mobile-auth-status{min-width:0}.mobile-avatar{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
@@ -122,6 +124,9 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
       <button data-page="jobs" id="navJobs">▣ &nbsp; Các nguồn thu</button>
       <button data-page="transactions" id="navTransactions">↕ &nbsp; Giao dịch</button>
       <button data-page="assets" id="navAssets">◈ &nbsp; Tài sản</button>
+      <small id="navAccount">Tài khoản</small>
+      <button data-page="profile" id="navProfile">◎ &nbsp; Hồ sơ</button>
+      <button data-page="settings" id="navSettings">⚙ &nbsp; Cài đặt</button>
       <small id="navData">Dữ liệu</small>
       <button onclick="exportData()" id="exportBtn">↓  Xuất dữ liệu</button>
       <button onclick="document.getElementById('importFile').click()" id="importBtn">↑  Nhập dữ liệu</button>
@@ -156,9 +161,15 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
         <div class="card stat"><div class="label" id="assetTotalLabel">TỔNG TÀI SẢN</div><div class="value" id="assetTotal">0</div><div class="sub" id="assetSub">Giá trị tài sản đang theo dõi</div></div>
       </div>
 
+      <div class="quick-actions">
+        <button class="btn btn-primary" onclick="openTxModal()" id="quickAddTx">＋ Thêm giao dịch</button>
+        <button class="btn btn-light" onclick="openJobModal()" id="quickAddJob">＋ Thêm nguồn thu</button>
+        <button class="btn btn-light" onclick="openAssetModal()" id="quickAddAsset">＋ Thêm tài sản</button>
+        <button class="btn btn-light" onclick="openGoalModal()" id="quickAddGoal">＋ Thêm mục tiêu</button>
+      </div>
+
       <div class="kpi-strip">
         <div class="card mini-kpi"><div class="kpi-label" id="avgNetLabel">Thu nhập Net bình quân</div><div class="kpi-value" id="avgNetValue">0</div><div class="kpi-sub" id="avgNetSub">12 tháng</div></div>
-        <div class="card mini-kpi"><div class="kpi-label" id="savingRateLabel">Tỷ lệ tiết kiệm</div><div class="kpi-value green" id="savingRateValue">0%</div><div class="kpi-sub" id="savingRateSub">Net / Gross</div></div>
         <div class="card mini-kpi"><div class="kpi-label" id="goalProgressLabel">Tiến độ mục tiêu</div><div class="kpi-value" id="goalProgressValue">0%</div><div class="kpi-sub" id="goalProgressSub">Tổng tiến độ</div></div>
       </div>
 
@@ -220,6 +231,30 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
     <section id="transactionsPage" style="display:none">
       <div class="card section"><div class="section-head"><div><h2 id="txTitle">Tất cả giao dịch</h2><span class="muted" id="txSub">Năm <span class="yearLabel"></span></span></div><button class="btn btn-primary" id="addTx" onclick="openTxModal()">＋ Thêm giao dịch</button></div><div class="table-wrap"><table class="table" id="txTable"></table></div></div>
     </section>
+
+    <section id="profilePage" style="display:none">
+      <div class="card profile-card">
+        <img class="profile-avatar" id="profileAvatar" src="" alt="Avatar">
+        <div><div class="profile-name" id="profileName">—</div><div class="profile-email" id="profileEmail">—</div><div class="muted" style="margin-top:9px" id="profileProvider">GitHub</div></div>
+      </div>
+      <div class="profile-grid">
+        <div class="card profile-stat"><div class="muted" id="profileJobsLabel">Nguồn thu</div><div class="v" id="profileJobsCount">0</div></div>
+        <div class="card profile-stat"><div class="muted" id="profileTxLabel">Giao dịch</div><div class="v" id="profileTxCount">0</div></div>
+        <div class="card profile-stat"><div class="muted" id="profileAssetsLabel">Tài sản</div><div class="v" id="profileAssetsCount">0</div></div>
+      </div>
+      <div class="card section" style="margin-top:18px"><div class="section-head"><div><h2 id="profileAccountTitle">Tài khoản</h2><span class="muted" id="profileAccountSub">Tài khoản GitHub đang dùng để đồng bộ dữ liệu IncomeHub</span></div><button class="btn btn-danger" onclick="signOut()" id="profileLogout">Đăng xuất</button></div></div>
+    </section>
+
+    <section id="settingsPage" style="display:none">
+      <div class="card section">
+        <div class="section-head"><div><h2 id="settingsTitle">Cài đặt</h2><span class="muted" id="settingsSub">Tùy chỉnh trải nghiệm IncomeHub</span></div></div>
+        <div class="settings-list">
+          <div class="setting-row"><div><div class="setting-title" id="appearanceTitle">Giao diện</div><div class="setting-desc" id="appearanceDesc">Chọn sáng hoặc tối</div></div><button class="btn btn-light" onclick="toggleTheme()" id="settingsThemeBtn">☀ Sáng</button></div>
+          <div class="setting-row"><div><div class="setting-title" id="languageTitle">Ngôn ngữ</div><div class="setting-desc" id="languageDesc">Ngôn ngữ hiển thị của ứng dụng</div></div><select class="input" id="settingsLanguage" onchange="setLanguage(this.value)"><option value="vi">Tiếng Việt</option><option value="en">English</option><option value="ko">한국어</option></select></div>
+          <div class="setting-row"><div><div class="setting-title" id="dataTitle">Dữ liệu</div><div class="setting-desc" id="dataDesc">Sao lưu hoặc khôi phục dữ liệu IncomeHub</div></div><div class="actions"><button class="btn btn-light" onclick="exportData()" id="settingsExport">Xuất dữ liệu</button><button class="btn btn-light" onclick="document.getElementById('importFile').click()" id="settingsImport">Nhập dữ liệu</button></div></div>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -244,6 +279,15 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
     <div class="modal-foot" id="modalFoot"></div>
   </div>
 </div>
+<div class="login-gate" id="loginGate">
+  <div class="card login-gate-card">
+    <div class="login-gate-icon">₫</div>
+    <h2 id="loginGateTitle" style="margin:0 0 8px">Đăng nhập để tiếp tục</h2>
+    <p class="muted" id="loginGateText" style="line-height:1.7;margin:0 auto 22px">Dữ liệu thu nhập, tài sản và mục tiêu chỉ hiển thị sau khi bạn đăng nhập.</p>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="openAuthModal()" id="loginGateBtn">↗ Đăng nhập bằng GitHub</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -392,6 +436,8 @@ async function initAuth(){
   }
 }
 function updateAuthUI(){
+  const gate=document.getElementById('loginGate');
+  if(gate)gate.style.display=currentUser?'none':'grid';
   const e=document.getElementById('authEmail'),a=document.querySelector('.sidebar .auth-login'),d=document.getElementById('authDot');
   const me=document.getElementById('mobileAuthEmail'),ma=document.getElementById('mobileAuthLogin'),md=document.getElementById('mobileAuthDot'),mav=document.getElementById('mobileAuthAvatar');
   if(currentUser){
@@ -423,7 +469,7 @@ async function signInWithGitHub(){
   });
   if(error){err.textContent=error.message;btn.disabled=false;}
 }
-async function signOut(){await supabaseClient.auth.signOut();localStorage.removeItem(KEY);data=structuredClone(defaultData);cloudReady=false;render();showToast(t('logout'))}
+async function signOut(){await supabaseClient.auth.signOut();localStorage.removeItem(KEY);data=structuredClone(defaultData);cloudReady=false;currentPage='dashboard';renderPage('dashboard');updateAuthUI();showToast(t('logout'))}
 const I18N={
   vi:{
     title:'IncomeHub — Theo dõi thu nhập',dashboard:'Dashboard',jobs:'Các nguồn thu',transactions:'Giao dịch',assets:'Tài sản',overview:'Tổng quan',data:'Dữ liệu',export:'Xuất dữ liệu',import:'Nhập dữ liệu',login:'Đăng nhập',loginGithub:'Đăng nhập GitHub',logout:'Đăng xuất',sync:'Chưa kết nối',addJob:'＋ Thêm job',addAsset:'＋ Thêm tài sản',addTx:'＋ Thêm giao dịch',manage:'Quản lý →',viewAll:'Xem tất cả →',all:'Tất cả nhóm',save:'Lưu',cancel:'Hủy',delete:'Xóa',edit:'Sửa',update:'Cập nhật giá trị',detail:'Chi tiết',income:'Thu nhập',gross:'GROSS',tax:'TAX',net:'NET',totalAssets:'TỔNG TÀI SẢN',principal:'VỐN GỐC',gain:'LÃI / LỖ',assetCount:'SỐ TÀI SẢN',monthly:'Thu nhập theo tháng',byJob:'Cơ cấu theo job',monthTable:'Bảng thu nhập theo tháng',jobsManage:'Quản lý nguồn thu',assetList:'Danh mục tài sản',transactionsAll:'Tất cả giao dịch',currentValue:'Giá trị hiện tại',noJobs:'Chưa có job.',noAssets:'Chưa có tài sản. Hãy thêm tài sản đầu tiên.',noData:'Chưa có dữ liệu',theme:'Đổi giao diện',mobileNavHint:'Trên mobile, dùng các nút điều hướng trong giao diện.',
@@ -457,13 +503,13 @@ const I18N={
   }
 };
 Object.assign(I18N.vi,{
-  addGoal:'＋ Thêm mục tiêu',goalsTitle:'Mục tiêu tài chính',goalsSub:'Theo dõi tiến độ các mục tiêu của bạn',goalProgress:'Tiến độ mục tiêu',remaining:'Còn thiếu',target:'Mục tiêu',achieved:'Đã đạt',deadline:'Hạn mục tiêu',noGoals:'Chưa có mục tiêu. Hãy thêm mục tiêu đầu tiên.',addGoalTitle:'Thêm mục tiêu',editGoalTitle:'Chỉnh sửa mục tiêu',goalName:'Tên mục tiêu *',goalTarget:'Số tiền mục tiêu *',goalCurrent:'Đã tích lũy',goalDeadline:'Ngày hoàn thành',goalNote:'Ghi chú',saveGoal:'Lưu mục tiêu',enterGoal:'Vui lòng nhập tên và số tiền mục tiêu.',savedGoal:'Đã lưu mục tiêu',deletedGoal:'Đã xóa mục tiêu',deleteGoalAsk:'Xóa mục tiêu này?',avgNet:'Thu nhập Net bình quân',twelveMonths:'12 tháng',savingRate:'Tỷ lệ tiết kiệm',netGross:'Net / Gross',totalProgress:'Tổng tiến độ',bestMonth:'Tháng cao nhất',themeLight:'Giao diện sáng',themeDark:'Giao diện tối',goal:'Mục tiêu',noDeadline:'Không có hạn',overTarget:'Đã vượt mục tiêu'
+  addGoal:'＋ Thêm mục tiêu',goalsTitle:'Mục tiêu tài chính',goalsSub:'Theo dõi tiến độ các mục tiêu của bạn',goalProgress:'Tiến độ mục tiêu',remaining:'Còn thiếu',target:'Mục tiêu',achieved:'Đã đạt',deadline:'Hạn mục tiêu',noGoals:'Chưa có mục tiêu. Hãy thêm mục tiêu đầu tiên.',addGoalTitle:'Thêm mục tiêu',editGoalTitle:'Chỉnh sửa mục tiêu',goalName:'Tên mục tiêu *',goalTarget:'Số tiền mục tiêu *',goalCurrent:'Đã tích lũy',goalDeadline:'Ngày hoàn thành',goalNote:'Ghi chú',saveGoal:'Lưu mục tiêu',enterGoal:'Vui lòng nhập tên và số tiền mục tiêu.',savedGoal:'Đã lưu mục tiêu',deletedGoal:'Đã xóa mục tiêu',deleteGoalAsk:'Xóa mục tiêu này?',avgNet:'Thu nhập Net bình quân',twelveMonths:'12 tháng',profile:'Hồ sơ',settings:'Cài đặt',account:'Tài khoản',profileSub:'Tài khoản GitHub đang dùng để đồng bộ dữ liệu IncomeHub',profileJobs:'Nguồn thu',profileTx:'Giao dịch',profileAssets:'Tài sản',logout:'Đăng xuất',settingsSub:'Tùy chỉnh trải nghiệm IncomeHub',appearance:'Giao diện',appearanceDesc:'Chọn sáng hoặc tối',language:'Ngôn ngữ',languageDesc:'Ngôn ngữ hiển thị của ứng dụng',dataSettings:'Dữ liệu',dataSettingsDesc:'Sao lưu hoặc khôi phục dữ liệu IncomeHub',lightMode:'Sáng',darkMode:'Tối',loginGateTitle:'Đăng nhập để tiếp tục',loginGateText:'Dữ liệu thu nhập, tài sản và mục tiêu chỉ hiển thị sau khi bạn đăng nhập.',loginGateBtn:'↗ Đăng nhập bằng GitHub',totalProgress:'Tổng tiến độ',bestMonth:'Tháng cao nhất',themeLight:'Giao diện sáng',themeDark:'Giao diện tối',goal:'Mục tiêu',noDeadline:'Không có hạn',overTarget:'Đã vượt mục tiêu'
 });
 Object.assign(I18N.en,{
-  addGoal:'＋ Add goal',goalsTitle:'Financial goals',goalsSub:'Track the progress of your financial goals',goalProgress:'Goal progress',remaining:'Remaining',target:'Target',achieved:'Achieved',deadline:'Deadline',noGoals:'No goals yet. Add your first goal.',addGoalTitle:'Add goal',editGoalTitle:'Edit goal',goalName:'Goal name *',goalTarget:'Target amount *',goalCurrent:'Amount achieved',goalDeadline:'Target date',goalNote:'Note',saveGoal:'Save goal',enterGoal:'Please enter a goal name and target amount.',savedGoal:'Goal saved',deletedGoal:'Goal deleted',deleteGoalAsk:'Delete this goal?',avgNet:'Average monthly Net',twelveMonths:'12 months',savingRate:'Savings rate',netGross:'Net / Gross',totalProgress:'Overall progress',bestMonth:'Best month',themeLight:'Light mode',themeDark:'Dark mode',goal:'Goal',noDeadline:'No deadline',overTarget:'Target exceeded'
+  addGoal:'＋ Add goal',goalsTitle:'Financial goals',goalsSub:'Track the progress of your financial goals',goalProgress:'Goal progress',remaining:'Remaining',target:'Target',achieved:'Achieved',deadline:'Deadline',noGoals:'No goals yet. Add your first goal.',addGoalTitle:'Add goal',editGoalTitle:'Edit goal',goalName:'Goal name *',goalTarget:'Target amount *',goalCurrent:'Amount achieved',goalDeadline:'Target date',goalNote:'Note',saveGoal:'Save goal',enterGoal:'Please enter a goal name and target amount.',savedGoal:'Goal saved',deletedGoal:'Goal deleted',deleteGoalAsk:'Delete this goal?',avgNet:'Average monthly Net',twelveMonths:'12 months',profile:'Profile',settings:'Settings',account:'Account',profileSub:'GitHub account used to sync your IncomeHub data',profileJobs:'Income sources',profileTx:'Transactions',profileAssets:'Assets',settingsSub:'Customize your IncomeHub experience',appearance:'Appearance',appearanceDesc:'Choose light or dark mode',language:'Language',languageDesc:'Application display language',dataSettings:'Data',dataSettingsDesc:'Back up or restore your IncomeHub data',lightMode:'Light',darkMode:'Dark',loginGateTitle:'Sign in to continue',loginGateText:'Your income, assets and goals are only shown after you sign in.',loginGateBtn:'↗ Sign in with GitHub',totalProgress:'Overall progress',bestMonth:'Best month',themeLight:'Light mode',themeDark:'Dark mode',goal:'Goal',noDeadline:'No deadline',overTarget:'Target exceeded'
 });
 Object.assign(I18N.ko,{
-  addGoal:'＋ 목표 추가',goalsTitle:'재무 목표',goalsSub:'재무 목표의 진행 상황을 추적하세요',goalProgress:'목표 진행률',remaining:'남은 금액',target:'목표 금액',achieved:'달성 금액',deadline:'목표 기한',noGoals:'아직 목표가 없습니다. 첫 목표를 추가하세요.',addGoalTitle:'목표 추가',editGoalTitle:'목표 수정',goalName:'목표 이름 *',goalTarget:'목표 금액 *',goalCurrent:'달성 금액',goalDeadline:'목표 날짜',goalNote:'메모',saveGoal:'목표 저장',enterGoal:'목표 이름과 금액을 입력하세요.',savedGoal:'목표가 저장되었습니다',deletedGoal:'목표가 삭제되었습니다',deleteGoalAsk:'이 목표를 삭제하시겠습니까?',avgNet:'월평균 순수입',twelveMonths:'12개월',savingRate:'저축률',netGross:'Net / Gross',totalProgress:'전체 진행률',bestMonth:'최고 수입 월',themeLight:'라이트 모드',themeDark:'다크 모드',goal:'목표',noDeadline:'기한 없음',overTarget:'목표 초과'
+  addGoal:'＋ 목표 추가',goalsTitle:'재무 목표',goalsSub:'재무 목표의 진행 상황을 추적하세요',goalProgress:'목표 진행률',remaining:'남은 금액',target:'목표 금액',achieved:'달성 금액',deadline:'목표 기한',noGoals:'아직 목표가 없습니다. 첫 목표를 추가하세요.',addGoalTitle:'목표 추가',editGoalTitle:'목표 수정',goalName:'목표 이름 *',goalTarget:'목표 금액 *',goalCurrent:'달성 금액',goalDeadline:'목표 날짜',goalNote:'메모',saveGoal:'목표 저장',enterGoal:'목표 이름과 금액을 입력하세요.',savedGoal:'목표가 저장되었습니다',deletedGoal:'목표가 삭제되었습니다',deleteGoalAsk:'이 목표를 삭제하시겠습니까?',avgNet:'월평균 순수입',twelveMonths:'12개월',profile:'프로필',settings:'설정',account:'계정',profileSub:'IncomeHub 데이터 동기화에 사용하는 GitHub 계정',profileJobs:'수입원',profileTx:'거래',profileAssets:'자산',settingsSub:'IncomeHub 사용 환경을 설정하세요',appearance:'화면',appearanceDesc:'라이트 또는 다크 모드 선택',language:'언어',languageDesc:'앱 표시 언어',dataSettings:'데이터',dataSettingsDesc:'IncomeHub 데이터 백업 또는 복원',lightMode:'라이트',darkMode:'다크',loginGateTitle:'로그인하여 계속하세요',loginGateText:'수입, 자산 및 목표 데이터는 로그인 후에만 표시됩니다.',loginGateBtn:'↗ GitHub로 로그인',totalProgress:'전체 진행률',bestMonth:'최고 수입 월',themeLight:'라이트 모드',themeDark:'다크 모드',goal:'목표',noDeadline:'기한 없음',overTarget:'목표 초과'
 });
 function catLabel(cat){return I18N[language].categories?.[cat]||cat}
 let language=localStorage.getItem('incomehub_lang')||'vi';
@@ -474,10 +520,10 @@ function updateThemeButton(){const dark=document.documentElement.dataset.theme==
 function applyLanguage(){
   document.documentElement.lang=language;
   document.title=t('title');
-  const ls=document.getElementById('languageSelect');if(ls)ls.value=language;
+  const ls=document.getElementById('languageSelect');if(ls)ls.value=language;const sl=document.getElementById('settingsLanguage');if(sl)sl.value=language;
   updateThemeButton();
   const staticMap={
-    'navOverview':t('overview'),'navData':t('data'),'navDashboard':'▦  '+t('dashboard'),'navJobs':'▣  '+t('jobs'),'navTransactions':'↕  '+t('transactions'),'navAssets':'◈  '+t('assets'),
+    'navOverview':t('overview'),'navData':t('data'),'navAccount':t('account'),'navDashboard':'▦  '+t('dashboard'),'navJobs':'▣  '+t('jobs'),'navTransactions':'↕  '+t('transactions'),'navAssets':'◈  '+t('assets'),'navProfile':'◎  '+t('profile'),'navSettings':'⚙  '+t('settings'),
     'exportBtn':'↓  '+t('export'),'importBtn':'↑  '+t('import'),'mobileAuthLogin':currentUser?t('logout'):t('loginGithub'),'authEmail':currentUser?document.getElementById('authEmail').textContent:t('noLogin'),
     'syncStatus':document.getElementById('syncStatus')?.dataset.key? t(document.getElementById('syncStatus').dataset.key):document.getElementById('syncStatus')?.textContent,
     'pageTitle':pageTitleFor(currentPage),
@@ -486,7 +532,7 @@ function applyLanguage(){
     'assetAccumTitle':t('assetAccum'),'assetAccumSub':t('currentValue'),'assetAllocTitle':t('assetAllocation'),'assetAllocSub':t('byCategory'),'sourcesTitle':t('incomeSources'),'sourcesSub':t('manageEachSource'),
     'jobsTitle':t('manageSources'),'jobsSub':t('manageSourcesDesc'),'assetsTitle':t('assetPortfolio'),'assetsSub':t('assetDesc'),'txTitle':t('allTransactions'),'txSub':t('year'),
     'assetPageValueSub':t('currentValue'),'assetPageCostSub':t('invested'),'assetPageGainSub':t('gain'),'assetPageCountSub':t('tracked'),'assetTotalLabel':t('totalAssets'),'assetPageTotalLabel':t('totalAssets'),'assetPageCostLabel':t('principal'),'assetPageGainLabel':t('gain'),'assetPageCountLabel':t('assetCount'),
-    'assetFilterAll':t('all'),'goalsTitle':t('goalsTitle'),'goalsSub':t('goalsSub'),'avgNetLabel':t('avgNet'),'avgNetSub':t('twelveMonths'),'savingRateLabel':t('savingRate'),'savingRateSub':t('netGross'),'goalProgressLabel':t('goalProgress'),'goalProgressSub':t('totalProgress'),'authTitle':t('authTitle'),'authHint':t('authHint'),'githubAuthBtn':t('authButton'),'authCancel':t('cancel')
+    'assetFilterAll':t('all'),'profileAccountTitle':t('account'),'profileAccountSub':t('profileSub'),'profileJobsLabel':t('profileJobs'),'profileTxLabel':t('profileTx'),'profileAssetsLabel':t('profileAssets'),'profileLogout':t('logout'),'settingsTitle':t('settings'),'settingsSub':t('settingsSub'),'appearanceTitle':t('appearance'),'appearanceDesc':t('appearanceDesc'),'languageTitle':t('language'),'languageDesc':t('languageDesc'),'dataTitle':t('dataSettings'),'dataDesc':t('dataSettingsDesc'),'settingsExport':t('export'),'settingsImport':t('import'),'loginGateTitle':t('loginGateTitle'),'loginGateText':t('loginGateText'),'loginGateBtn':t('loginGateBtn'),'quickAddTx':t('addTx'),'quickAddJob':t('addJob'),'quickAddAsset':t('addAsset'),'quickAddGoal':t('addGoal'),'goalsTitle':t('goalsTitle'),'goalsSub':t('goalsSub'),'avgNetLabel':t('avgNet'),'avgNetSub':t('twelveMonths'),'goalProgressLabel':t('goalProgress'),'goalProgressSub':t('totalProgress'),'authTitle':t('authTitle'),'authHint':t('authHint'),'githubAuthBtn':t('authButton'),'authCancel':t('cancel')
   };
   Object.entries(staticMap).forEach(([id,val])=>{const e=document.getElementById(id);if(e&&val!=null)e.textContent=val});
   const btnMap={addJob:'addJob',addAsset:'addAsset',addTx:'addTx',addGoalDash:'addGoal',manageAssets:'manage',viewAll:'viewAll'};
@@ -518,8 +564,7 @@ function initYears(){
 function clearPrivateUI(){
   // Logged-out state: render no private records, totals, charts, goals or asset details.
   const zeroIds=['grossTotal','taxTotal','netTotal','assetTotal','avgNetValue','goalProgressValue','assetPageTotal','assetCostTotal','assetGainTotal','assetCount'];
-  zeroIds.forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=id==='goalProgressValue'?'0%':id==='savingRateValue'?'0%':'0'});
-  ['savingRateValue'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='0%'});
+  zeroIds.forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=id==='goalProgressValue'?'0%':'0'});
   const empty=(id,msg=t('signInToViewData'))=>{const e=document.getElementById(id);if(e)e.innerHTML='<div class=\"empty\">'+msg+'</div>'};
   empty('monthlyBars');
   empty('jobBreakdown');
@@ -539,20 +584,26 @@ function render(){
   if(currentPage==='jobs')renderJobs();
   if(currentPage==='transactions')renderTransactions();
   if(currentPage==='assets')renderAssets();
+  if(currentPage==='profile')renderProfile();
+  if(currentPage==='settings')renderSettings();
 }
-function pageTitleFor(p){return p==='dashboard'?t('dashboard'):p==='jobs'?t('jobsManage'):p==='transactions'?t('transactionsAll'):t('assets');}
+function pageTitleFor(p){return p==='dashboard'?t('dashboard'):p==='jobs'?t('jobsManage'):p==='transactions'?t('transactionsAll'):p==='assets'?t('assets'):p==='profile'?t('profile'):t('settings');}
 function renderPage(p){
+  if(!currentUser && ['profile','settings'].includes(p)) p='dashboard';
   currentPage=p;
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
   document.getElementById('dashboardPage').style.display=p==='dashboard'?'block':'none';
   document.getElementById('jobsPage').style.display=p==='jobs'?'block':'none';
   document.getElementById('transactionsPage').style.display=p==='transactions'?'block':'none';
   document.getElementById('assetsPage').style.display=p==='assets'?'block':'none';
+  document.getElementById('profilePage').style.display=p==='profile'?'block':'none';
+  document.getElementById('settingsPage').style.display=p==='settings'?'block':'none';
   document.getElementById('pageTitle').textContent=pageTitleFor(p);
   render();
 }
 function showPage(p, push=true){
-  if(!['dashboard','jobs','transactions','assets'].includes(p)) p='dashboard';
+  if(!currentUser){openAuthModal();return;}
+  if(!['dashboard','jobs','transactions','assets','profile','settings'].includes(p)) p='dashboard';
   if(push && currentPage!==p){
     history.pushState({page:p},'',window.location.pathname+window.location.search+'#'+p);
   }
@@ -560,7 +611,7 @@ function showPage(p, push=true){
 }
 window.addEventListener('popstate',()=>{
   const hash=(window.location.hash||'').replace(/^#/,'');
-  renderPage(['dashboard','jobs','transactions','assets'].includes(hash)?hash:'dashboard');
+  renderPage(['dashboard','jobs','transactions','assets','profile','settings'].includes(hash)?hash:'dashboard');
 });
 window.addEventListener('hashchange',()=>{
   const hash=(window.location.hash||'').replace(/^#/,'');
@@ -575,7 +626,7 @@ document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dat
   const rawHash=window.location.hash||'';
   const oauthHash=/access_token=|refresh_token=|error=|code=/.test(rawHash);
   const hash=rawHash.replace(/^#/,'');
-  const first=['dashboard','jobs','transactions','assets'].includes(hash)?hash:'dashboard';
+  const first=['dashboard','jobs','transactions','assets','profile','settings'].includes(hash)?hash:'dashboard';
   if(!oauthHash){
     history.replaceState({page:first},'',window.location.pathname+window.location.search+'#'+first);
   }
@@ -583,16 +634,30 @@ document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dat
 })();
 
 function toggleBarTip(el){document.querySelectorAll('.bar-col.tip-open').forEach(x=>{if(x!==el)x.classList.remove('tip-open')});el.classList.toggle('tip-open')}
+function renderProfile(){
+  if(!currentUser)return;
+  const m=currentUser.user_metadata||{};
+  const name=m.user_name||m.preferred_username||m.full_name||currentUser.email||'IncomeHub';
+  const avatar=m.avatar_url||m.picture||DEFAULT_AVATAR;
+  const img=document.getElementById('profileAvatar');if(img){img.src=avatar;img.onerror=()=>{img.src=DEFAULT_AVATAR}}
+  document.getElementById('profileName').textContent=name;document.getElementById('profileEmail').textContent=currentUser.email||'—';
+  document.getElementById('profileJobsCount').textContent=data.jobs.length;document.getElementById('profileTxCount').textContent=data.tx.length;document.getElementById('profileAssetsCount').textContent=data.assets.length;
+}
+function renderSettings(){
+  const s=document.getElementById('settingsLanguage');if(s)s.value=language;
+  const b=document.getElementById('settingsThemeBtn');if(b)b.textContent=document.documentElement.dataset.theme==='dark'?'🌙 '+t('darkMode'):'☀ '+t('lightMode');
+}
+
 function renderGoals(){
   const el=document.getElementById('goalDashboard'); if(!el)return;
   if(!data.goals.length){el.innerHTML='<div class="goal-empty" style="grid-column:1/-1">'+t('noGoals')+'</div>';return}
   el.innerHTML=data.goals.map(g=>{
     const target=+g.target_amount||+g.target||0, current=+g.current_amount||+g.current||0, pct=target?Math.min(100,current/target*100):0, remain=Math.max(0,target-current);
-    return `<div class="card goal-card"><div class="goal-head"><div><div class="goal-name">${esc(g.name)}</div><div class="muted" style="margin-top:3px">${g.deadline?esc(g.deadline):t('noDeadline')}</div></div><div class="goal-percent">${pct.toFixed(0)}%</div></div><div class="goal-meta"><span>${t('achieved')}: <b>${money(current)}</b></span><span>${t('target')}: <b>${money(target)}</b></span></div><div class="goal-progress"><i style="width:${pct}%"></i></div><div class="goal-bottom"><span>${remain>0?t('remaining')+': '+money(remain):t('overTarget')}</span><span style="display:flex;gap:5px"><button class="btn btn-light" style="padding:5px 8px" onclick="openGoalModal('${g.id}')">${t('edit')}</button><button class="btn btn-danger" style="padding:5px 8px" onclick="deleteGoal('${g.id}')">${t('delete')}</button></span></div></div>`
+    return `<div class="card goal-card"><div class="goal-head"><div><div class="goal-name">${esc(g.name)}</div><div class="muted" style="margin-top:3px">${g.deadline?esc(g.deadline):t('noDeadline')}</div></div><div class="goal-percent">${pct.toFixed(0)}%</div></div><div class="goal-meta"><span>${t('achieved')}: <b>${money(current)}</b></span><span>${t('target')}: <b>${money(target)}</b></span></div><div class="goal-progress"><i style="width:${pct}%"></i></div><div class="goal-bottom"><span>${remain>0?t('remaining')+': '+money(remain):t('overTarget')}</span><span style="display:flex;gap:5px"><button class="btn btn-light" style="padding:5px 8px" onclick="event.preventDefault();event.stopPropagation();openGoalModal('${String(g.id).replaceAll("'","\\'")}')">${t('edit')}</button><button class="btn btn-danger" style="padding:5px 8px" onclick="deleteGoal('${g.id}')">${t('delete')}</button></span></div></div>`
   }).join('');
 }
 function renderDashboard(){
-  let y=year(), tx=txYear(y), gross=sum(tx,'gross'),tax=sum(tx,'tax'),nt=tx.reduce((a,t)=>a+net(t),0);
+  let y=year(), tx=txYear(y), allTx=data.tx||[], gross=sum(tx,'gross'),tax=sum(tx,'tax'),nt=tx.reduce((a,t)=>a+net(t),0);
   document.getElementById('grossYearLabel').textContent=t('year');document.getElementById('assetTotalLabel').textContent=t('totalAssets');
   document.getElementById('grossTotal').textContent=money(gross);document.getElementById('taxTotal').textContent=money(tax);document.getElementById('netTotal').textContent=money(nt);document.getElementById('assetTotal').textContent=money(assetTotal());
   const monthNet=[...Array(12)].map((_,i)=>tx.filter(t=>dateParts(t.date).m===i+1).reduce((x,t)=>x+net(t),0));
@@ -604,9 +669,8 @@ function renderDashboard(){
   let rows=[...Array(12)].map((_,i)=>{let vals=data.jobs.map(j=>tx.filter(t=>t.job===j.id&&dateParts(t.date).m===i+1).reduce((a,t)=>a+net(t),0));return `<tr><td><b>${monthName(i)}</b></td>${vals.map(v=>`<td>${v?money(v):'—'}</td>`).join('')}<td><b>${money(vals.reduce((a,b)=>a+b,0))}</b></td></tr>`}).join('');
   document.getElementById('monthTable').innerHTML=head+rows+'</tbody>';
   document.getElementById('jobList').innerHTML=data.jobs.length?data.jobs.slice(0,6).map(jobCard).join(''):'<div class="empty">'+t('noJobs')+'</div>';
-  const avg=nt/12, rate=gross?nt/gross*100:0, goalTotal=data.goals.reduce((a,g)=>a+(+g.target_amount||+g.target||0),0), goalCurrent=data.goals.reduce((a,g)=>a+(+g.current_amount||+g.current||0),0), goalPct=goalTotal?Math.min(100,goalCurrent/goalTotal*100):0;
+  const avg=nt/12, goalTotal=data.goals.reduce((a,g)=>a+(+g.target_amount||+g.target||0),0), goalCurrent=data.goals.reduce((a,g)=>a+(+g.current_amount||+g.current||0),0), goalPct=goalTotal?Math.min(100,goalCurrent/goalTotal*100):0;
   document.getElementById('avgNetValue').textContent=money(avg);document.getElementById('avgNetSub').textContent=t('twelveMonths');
-  document.getElementById('savingRateValue').textContent=rate.toFixed(1)+'%';document.getElementById('savingRateSub').textContent=t('netGross');
   document.getElementById('goalProgressValue').textContent=goalPct.toFixed(0)+'%';document.getElementById('goalProgressSub').textContent=t('totalProgress');
   renderGoals();
   renderAssetDashboard();
