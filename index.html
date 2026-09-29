@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -192,7 +193,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 <script>
 const SUPABASE_URL='https://kgjcymuxdwrjahreclrz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_owwMUsdL9HvA1diqdfzK-Q_kxCfjX83';
-const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,flowType:'pkce'}});
 const KEY='incomehub_v1';
 const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
 const defaultData={
@@ -291,61 +292,69 @@ async function loadCloudData(){
   cloudReady=true;setSyncStatus('Đã đồng bộ',true);initYears();render();return true;
 }
 async function initAuth(){
-  // Supabase JS handles the PKCE `?code=...` callback automatically because
-  // detectSessionInUrl is enabled. Do NOT call exchangeCodeForSession here as
-  // well, otherwise the automatic handler and our manual handler can race.
-  supabaseClient.auth.onAuthStateChange((event,session)=>{
-    console.log('[IncomeHub Auth]',event,session?.user?.id||'no-session');
+  // We handle the PKCE callback explicitly. detectSessionInUrl is disabled above
+  // so Supabase will not race this manual exchange.
+  try{
+    const url=new URL(window.location.href);
+    const code=url.searchParams.get('code');
+
+    if(code){
+      setSyncStatus('Đang xác thực GitHub…');
+      const {error}=await supabaseClient.auth.exchangeCodeForSession(code);
+      if(error) throw error;
+      // Remove the one-time OAuth code, but keep the current app route/hash.
+      url.searchParams.delete('code');
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_code');
+      url.searchParams.delete('error_description');
+      window.history.replaceState({page:currentPage},document.title,
+        url.pathname+(url.search?'?'+url.searchParams.toString():'')+url.hash);
+    }
+
+    // Subscribe before reading the session so refreshes/sign-outs are reflected.
+    supabaseClient.auth.onAuthStateChange((event,session)=>{
+      console.log('[IncomeHub Auth]',event,session?.user?.id||'no-session');
+      currentUser=session?.user||null;
+      cloudReady=!!currentUser;
+      updateAuthUI();
+      if(currentUser){
+        closeAuthModal();
+        setSyncStatus('Đang tải dữ liệu…');
+        // Do not await inside the auth callback.
+        setTimeout(async()=>{
+          try{await loadCloudData()}catch(e){
+            console.error('Cloud load failed',e);
+            setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e));
+          }
+        },0);
+      }else{
+        setSyncStatus('Đăng nhập để đồng bộ');
+      }
+    });
+
+    const {data:{session},error}=await supabaseClient.auth.getSession();
+    if(error) throw error;
+
     currentUser=session?.user||null;
     cloudReady=!!currentUser;
     updateAuthUI();
+
     if(currentUser){
-      closeAuthModal();
       setSyncStatus('Đang tải dữ liệu…');
-      // Supabase recommends deferring async work triggered by the auth event.
-      setTimeout(async()=>{
-        try{await loadCloudData()}catch(e){
-          console.error('Cloud load failed',e);
-          setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e));
-        }
-      },0);
+      await loadCloudData();
     }else{
       setSyncStatus('Đăng nhập để đồng bộ');
     }
-  });
-
-  // Give Supabase a moment to process the OAuth URL, then read the resulting
-  // persisted session. This also works on a fresh device after GitHub login.
-  const {data:{session},error}=await supabaseClient.auth.getSession();
-  if(error){
-    console.error('getSession failed',error);
-    setSyncStatus('Lỗi đăng nhập: '+error.message);
+  }catch(e){
+    console.error('IncomeHub auth failed:',e);
+    currentUser=null;
+    cloudReady=false;
     updateAuthUI();
-    return;
-  }
-  if(session){
-    currentUser=session.user;
-    cloudReady=true;
-    updateAuthUI();
-    setSyncStatus('Đang tải dữ liệu…');
-    try{await loadCloudData()}catch(e){
-      console.error('Cloud load failed',e);
-      setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e));
-    }
-  }else{
-    updateAuthUI();
-    setSyncStatus('Đăng nhập để đồng bộ');
-  }
-
-  // Once the session exists (or we know there is no session), remove only the
-  // one-time OAuth `code` from the visible URL. Keep the app hash for routing.
-  const url=new URL(window.location.href);
-  if(url.searchParams.has('code')){
-    url.searchParams.delete('code');
-    window.history.replaceState({page:currentPage},document.title,url.pathname+(url.search?'?'+url.searchParams.toString():'')+url.hash);
+    setSyncStatus('Lỗi đăng nhập');
+    document.getElementById('authError').textContent=e.message||'Không thể hoàn tất đăng nhập GitHub.';
+    showToast('Đăng nhập GitHub chưa hoàn tất');
   }
 }
-
 function updateAuthUI(){
   let e=document.getElementById('authEmail'),a=document.querySelector('.auth-login');
   if(currentUser){
