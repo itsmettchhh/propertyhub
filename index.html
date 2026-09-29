@@ -265,7 +265,12 @@ let cloudReady=false;
 let syncTimer=null;
 
 function load(){return structuredClone(defaultData)}
-function save(){localStorage.setItem(KEY,JSON.stringify(data)); if(currentUser) queueCloudSync()}
+function save(){
+  // Private data is never persisted for logged-out users. Supabase is the source of truth.
+  if(!currentUser)return;
+  localStorage.setItem(KEY,JSON.stringify(data));
+  queueCloudSync();
+}
 function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{let r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16)})}
 function ensureCloudIds(){
   const isUuid=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
@@ -462,7 +467,7 @@ Object.assign(I18N.ko,{
 });
 function catLabel(cat){return I18N[language].categories?.[cat]||cat}
 let language=localStorage.getItem('incomehub_lang')||'vi';
-function t(k){return (I18N[language]&&I18N[language][k])||I18N.vi[k]||k}
+function t(k){return (I18N[language]&&I18N[language][k])||I18N.vi[k]||({signInToViewData:{vi:'Đăng nhập để xem dữ liệu',en:'Sign in to view your data',ko:'로그인하여 데이터를 확인하세요'}}[k]?.[language])||k}
 function setLanguage(lang){if(!I18N[lang])lang='vi';language=lang;localStorage.setItem('incomehub_lang',lang);render();applyLanguage()}
 function toggleTheme(){const root=document.documentElement;const next=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=next;localStorage.setItem('incomehub_theme',next);updateThemeButton()}
 function updateThemeButton(){const dark=document.documentElement.dataset.theme==='dark',b=document.getElementById('themeToggle');if(b){b.textContent=dark?'🌙':'☀';b.title=dark?t('themeDark'):t('themeLight')}}
@@ -510,8 +515,26 @@ function initYears(){
   if([...years].includes(+old))s.value=old;
   document.querySelectorAll('.yearLabel').forEach(e=>e.textContent=year());
 }
+function clearPrivateUI(){
+  // Logged-out state: render no private records, totals, charts, goals or asset details.
+  const zeroIds=['grossTotal','taxTotal','netTotal','assetTotal','avgNetValue','goalProgressValue','assetPageTotal','assetCostTotal','assetGainTotal','assetCount'];
+  zeroIds.forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=id==='goalProgressValue'?'0%':id==='savingRateValue'?'0%':'0'});
+  ['savingRateValue'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='0%'});
+  const empty=(id,msg=t('signInToViewData'))=>{const e=document.getElementById(id);if(e)e.innerHTML='<div class=\"empty\">'+msg+'</div>'};
+  empty('monthlyBars');
+  empty('jobBreakdown');
+  empty('monthTable');
+  empty('assetDashboardSummary');
+  empty('assetCategoryBreakdown');
+  empty('goalDashboard');
+  empty('jobList');
+  empty('allJobs');
+  empty('assetList');
+  const tx=document.getElementById('txTable');if(tx)tx.innerHTML='<tbody><tr><td colspan=\"7\"><div class=\"empty\">'+t('signInToViewData')+'</div></td></tr></tbody>';
+}
 function render(){
   initYears();document.querySelectorAll('.yearLabel').forEach(e=>e.textContent=year());
+  if(!currentUser){clearPrivateUI();return;}
   if(currentPage==='dashboard')renderDashboard();
   if(currentPage==='jobs')renderJobs();
   if(currentPage==='transactions')renderTransactions();
@@ -589,8 +612,8 @@ function renderDashboard(){
   renderAssetDashboard();
 }
 function jobCard(j){
-  let tx=txYear(year()).filter(t=>t.job===j.id),g=sum(tx,'gross'),t=sum(tx,'tax');
-  return `<div class="card job"><div class="job-top"><div><div class="job-name"><i class="dot" style="background:${j.color}"></i>${esc(j.name)}</div><div class="job-type">${esc(j.type||t('jobOther'))}</div></div><span class="badge">${tx.length} ${t('jobTransaction')}</span></div><div class="job-money"><div class="money-box"><span>GROSS</span><b>${money(g)}</b></div><div class="money-box"><span>TAX</span><b class="red">${money(t)}</b></div><div class="money-box"><span>NET</span><b class="green">${money(g-t)}</b></div></div><div class="job-actions"><button class="btn btn-light" onclick="openJobDetail('${j.id}')">${t('detail')}</button><button class="btn btn-light" onclick="openTxModal(null,'${j.id}')">${t('addIncome')}</button></div></div>`;
+  let tx=txYear(year()).filter(t=>t.job===j.id),g=sum(tx,'gross'),taxAmount=sum(tx,'tax');
+  return `<div class="card job"><div class="job-top"><div><div class="job-name"><i class="dot" style="background:${j.color}"></i>${esc(j.name)}</div><div class="job-type">${esc(j.type||t('jobOther'))}</div></div><span class="badge">${tx.length} ${t('jobTransaction')}</span></div><div class="job-money"><div class="money-box"><span>GROSS</span><b>${money(g)}</b></div><div class="money-box"><span>TAX</span><b class="red">${money(taxAmount)}</b></div><div class="money-box"><span>NET</span><b class="green">${money(g-taxAmount)}</b></div></div><div class="job-actions"><button class="btn btn-light" onclick="openJobDetail('${j.id}')">${t('detail')}</button><button class="btn btn-light" onclick="openTxModal(null,'${j.id}')">${t('addIncome')}</button></div></div>`;
 }
 function renderJobs(){document.getElementById('allJobs').innerHTML=data.jobs.length?data.jobs.map(jobCard).join(''):'<div class="empty">'+t('noJobs')+'</div>'}
 function renderTransactions(){
