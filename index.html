@@ -192,7 +192,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 <script>
 const SUPABASE_URL='https://kgjcymuxdwrjahreclrz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_owwMUsdL9HvA1diqdfzK-Q_kxCfjX83';
-const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
 const KEY='incomehub_v1';
 const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
 const defaultData={
@@ -291,9 +291,47 @@ async function loadCloudData(){
   cloudReady=true;setSyncStatus('Đã đồng bộ',true);initYears();render();return true;
 }
 async function initAuth(){
-  const {data:{session}}=await supabaseClient.auth.getSession();
-  if(session){currentUser=session.user;cloudReady=true;updateAuthUI();try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu')}}else{updateAuthUI();setSyncStatus('Đăng nhập để đồng bộ')}
-  supabaseClient.auth.onAuthStateChange(async(_event,session)=>{currentUser=session?.user||null;cloudReady=!!currentUser;updateAuthUI();if(currentUser){try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu')}}else setSyncStatus('Đăng nhập để đồng bộ')});
+  // Register the listener first so an OAuth callback cannot race past it.
+  supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+    console.log('[IncomeHub Auth]',event,session?.user?.id||'no-session');
+    currentUser=session?.user||null;
+    cloudReady=!!currentUser;
+    updateAuthUI();
+    if(currentUser){
+      closeAuthModal();
+      setSyncStatus('Đang tải dữ liệu…');
+      try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e))}
+    }else{
+      setSyncStatus('Đăng nhập để đồng bộ');
+    }
+  });
+
+  // Supabase may return the OAuth session in the URL after GitHub redirects back.
+  // Explicitly process a PKCE code if present, then read the persisted session.
+  try{
+    const url=new URL(window.location.href);
+    const code=url.searchParams.get('code');
+    if(code){
+      const {error}=await supabaseClient.auth.exchangeCodeForSession(code);
+      if(error){console.error('OAuth code exchange failed',error);setSyncStatus('Lỗi đăng nhập: '+error.message)}
+      url.searchParams.delete('code');
+      window.history.replaceState({},document.title,url.pathname+(url.search?'?'+url.searchParams.toString():'')+url.hash);
+    }
+  }catch(e){console.error('OAuth callback handling failed',e)}
+
+  const {data:{session},error}=await supabaseClient.auth.getSession();
+  if(error){console.error('getSession failed',error);setSyncStatus('Lỗi đăng nhập: '+error.message);return}
+  if(session){
+    currentUser=session.user;
+    cloudReady=true;
+    updateAuthUI();
+    try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e))}
+  }else{
+    updateAuthUI();
+    setSyncStatus('Đăng nhập để đồng bộ');
+  }
+  // Remove an empty trailing hash left by the GitHub/Supabase redirect.
+  if(window.location.hash==='#'){history.replaceState(null,document.title,window.location.pathname+window.location.search)}
 }
 function updateAuthUI(){
   let e=document.getElementById('authEmail'),a=document.querySelector('.auth-login');
@@ -349,17 +387,43 @@ function render(){
   if(currentPage==='transactions')renderTransactions();
   if(currentPage==='assets')renderAssets();
 }
-function showPage(p){
+function pageTitleFor(p){
+  return p==='dashboard'?'Dashboard thu nhập':p==='jobs'?'Các nguồn thu':p==='transactions'?'Giao dịch':'Tài sản';
+}
+function renderPage(p){
   currentPage=p;
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
   document.getElementById('dashboardPage').style.display=p==='dashboard'?'block':'none';
   document.getElementById('jobsPage').style.display=p==='jobs'?'block':'none';
   document.getElementById('transactionsPage').style.display=p==='transactions'?'block':'none';
   document.getElementById('assetsPage').style.display=p==='assets'?'block':'none';
-  document.getElementById('pageTitle').textContent=p==='dashboard'?'Dashboard thu nhập':p==='jobs'?'Các nguồn thu':p==='transactions'?'Giao dịch':'Tài sản';
+  document.getElementById('pageTitle').textContent=pageTitleFor(p);
   render();
 }
+function showPage(p, push=true){
+  if(!['dashboard','jobs','transactions','assets'].includes(p)) p='dashboard';
+  if(push && currentPage!==p){
+    history.pushState({page:p},'',window.location.pathname+window.location.search+'#'+p);
+  }
+  renderPage(p);
+}
+window.addEventListener('popstate',()=>{
+  const hash=(window.location.hash||'').replace(/^#/,'');
+  renderPage(['dashboard','jobs','transactions','assets'].includes(hash)?hash:'dashboard');
+});
+window.addEventListener('hashchange',()=>{
+  const hash=(window.location.hash||'').replace(/^#/,'');
+  if(['dashboard','jobs','transactions','assets'].includes(hash) && currentPage!==hash) renderPage(hash);
+});
 document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+
+// Keep the active section in the URL so browser Back/Forward works on desktop and mobile.
+(function initPageHistory(){
+  const hash=(window.location.hash||'').replace(/^#/,'');
+  const first=['dashboard','jobs','transactions','assets'].includes(hash)?hash:'dashboard';
+  history.replaceState({page:first},'',window.location.pathname+window.location.search+'#'+first);
+  renderPage(first);
+})();
 
 function renderDashboard(){
   let y=year(), tx=txYear(y), gross=sum(tx,'gross'),tax=sum(tx,'tax'),nt=tx.reduce((a,t)=>a+net(t),0);
