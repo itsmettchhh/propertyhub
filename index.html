@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -292,8 +291,10 @@ async function loadCloudData(){
   cloudReady=true;setSyncStatus('Đã đồng bộ',true);initYears();render();return true;
 }
 async function initAuth(){
-  // Register the listener first so an OAuth callback cannot race past it.
-  supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+  // Supabase JS handles the PKCE `?code=...` callback automatically because
+  // detectSessionInUrl is enabled. Do NOT call exchangeCodeForSession here as
+  // well, otherwise the automatic handler and our manual handler can race.
+  supabaseClient.auth.onAuthStateChange((event,session)=>{
     console.log('[IncomeHub Auth]',event,session?.user?.id||'no-session');
     currentUser=session?.user||null;
     cloudReady=!!currentUser;
@@ -301,46 +302,50 @@ async function initAuth(){
     if(currentUser){
       closeAuthModal();
       setSyncStatus('Đang tải dữ liệu…');
-      try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e))}
+      // Supabase recommends deferring async work triggered by the auth event.
+      setTimeout(async()=>{
+        try{await loadCloudData()}catch(e){
+          console.error('Cloud load failed',e);
+          setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e));
+        }
+      },0);
     }else{
       setSyncStatus('Đăng nhập để đồng bộ');
     }
   });
 
-  // Supabase may return the OAuth session in the URL after GitHub redirects back.
-  // Explicitly process a PKCE code if present, then read the persisted session.
-  try{
-    const url=new URL(window.location.href);
-    const code=url.searchParams.get('code');
-    if(code){
-      const {error}=await supabaseClient.auth.exchangeCodeForSession(code);
-      if(error){console.error('OAuth code exchange failed',error);setSyncStatus('Lỗi đăng nhập: '+error.message)}
-      url.searchParams.delete('code');
-      window.history.replaceState({},document.title,url.pathname+(url.search?'?'+url.searchParams.toString():'')+url.hash);
-    }
-  }catch(e){console.error('OAuth callback handling failed',e)}
-
+  // Give Supabase a moment to process the OAuth URL, then read the resulting
+  // persisted session. This also works on a fresh device after GitHub login.
   const {data:{session},error}=await supabaseClient.auth.getSession();
-  if(error){console.error('getSession failed',error);setSyncStatus('Lỗi đăng nhập: '+error.message);return}
+  if(error){
+    console.error('getSession failed',error);
+    setSyncStatus('Lỗi đăng nhập: '+error.message);
+    updateAuthUI();
+    return;
+  }
   if(session){
     currentUser=session.user;
     cloudReady=true;
     updateAuthUI();
-    try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e))}
+    setSyncStatus('Đang tải dữ liệu…');
+    try{await loadCloudData()}catch(e){
+      console.error('Cloud load failed',e);
+      setSyncStatus('Lỗi tải dữ liệu: '+(e.message||e));
+    }
   }else{
     updateAuthUI();
     setSyncStatus('Đăng nhập để đồng bộ');
   }
-  // Once Supabase has processed OAuth, remove OAuth parameters and restore
-  // the normal app section hash without destroying the session.
-  const rawHash=window.location.hash||'';
-  const hasOAuthFragment=/access_token=|refresh_token=|error=|code=/.test(rawHash);
-  if(hasOAuthFragment || rawHash==='#'){
-    history.replaceState({page:'dashboard'},document.title,window.location.pathname+window.location.search+'#dashboard');
-    currentPage='dashboard';
-    renderPage('dashboard');
+
+  // Once the session exists (or we know there is no session), remove only the
+  // one-time OAuth `code` from the visible URL. Keep the app hash for routing.
+  const url=new URL(window.location.href);
+  if(url.searchParams.has('code')){
+    url.searchParams.delete('code');
+    window.history.replaceState({page:currentPage},document.title,url.pathname+(url.search?'?'+url.searchParams.toString():'')+url.hash);
   }
 }
+
 function updateAuthUI(){
   let e=document.getElementById('authEmail'),a=document.querySelector('.auth-login');
   if(currentUser){
