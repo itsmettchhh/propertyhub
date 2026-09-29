@@ -60,8 +60,8 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .mobile-menu{display:none}
 .mobile-auth{display:none}
 .mobile-auth-status{display:flex;align-items:center;gap:8px;min-width:0;flex:1}.mobile-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 28px;background:#e5e7eb;border:1px solid var(--line)}
-.mobile-auth-status .auth-email{color:var(--text);font-size:12px}
-.mobile-auth-status .auth-login{color:var(--primary);font-size:12px}
+.mobile-auth-status .auth-email{color:var(--text);font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mobile-auth .auth-login{color:var(--primary);font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;white-space:nowrap}
 .mobile-auth .auth-dot{flex:0 0 auto}
 .auth-status{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#1b2433;border:1px solid #30394a;border-radius:12px;font-size:11px;color:#cbd5e1}
 .auth-dot{width:8px;height:8px;border-radius:50%;background:#64748b}.auth-dot.ok{background:#22c55e}
@@ -71,7 +71,8 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 
 .toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;z-index:100;font-size:13px}.toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list,.asset-list{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
-@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.mobile-auth{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:12px;box-shadow:var(--shadow)}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+@media(max-width:900px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.mobile-auth{display:flex !important;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:12px;box-shadow:var(--shadow);min-height:48px}.mobile-auth-status{min-width:0}.mobile-avatar{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+@media(min-width:901px){.mobile-auth{display:none !important}}
 </style>
 </head>
 <body>
@@ -95,8 +96,8 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 
   <main class="main">
     <div class="mobile-auth" id="mobileAuthStatus">
-      <div class="mobile-auth-status"><img class="mobile-avatar" id="mobileAuthAvatar" alt="Avatar"><span class="auth-dot" id="mobileAuthDot"></span><span class="auth-email" id="mobileAuthEmail">Chưa đăng nhập</span></div>
-      <a class="auth-login" id="mobileAuthLogin" onclick="openAuthModal()">Đăng nhập</a>
+      <div class="mobile-auth-status"><img class="mobile-avatar" id="mobileAuthAvatar" alt="Avatar" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2232%22 fill=%22%23e5e7eb%22/%3E%3Ccircle cx=%2232%22 cy=%2224%22 r=%2211%22 fill=%22%239ca3af%22/%3E%3Cpath d=%22M12 58c2-13 10-19 20-19s18 6 20 19%22 fill=%22%239ca3af%22/%3E%3C/svg%3E"><span class="auth-dot" id="mobileAuthDot"></span><span class="auth-email" id="mobileAuthEmail">Chưa đăng nhập</span></div>
+      <a class="auth-login" id="mobileAuthLogin" onclick="openAuthModal()">Đăng nhập GitHub</a>
     </div>
     <div class="topbar">
       <div class="title">
@@ -202,6 +203,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 <script>
 const SUPABASE_URL='https://kgjcymuxdwrjahreclrz.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_owwMUsdL9HvA1diqdfzK-Q_kxCfjX83';
+const DEFAULT_AVATAR='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="32" fill="#e5e7eb"/><circle cx="32" cy="24" r="11" fill="#9ca3af"/><path d="M12 58c2-13 10-19 20-19s18 6 20 19" fill="#9ca3af"/></svg>');
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,flowType:'pkce'}});
 const KEY='incomehub_v1';
 const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
@@ -372,10 +374,10 @@ function updateAuthUI(){
     const name=m.user_name||m.preferred_username||m.full_name||currentUser.email||'Đã đăng nhập';
     const avatar=m.avatar_url||m.picture||'';
     e.textContent=name; a.textContent='Đăng xuất'; a.onclick=signOut; d.classList.add('ok');
-    if(me){me.textContent=name;ma.textContent='Đăng xuất';ma.onclick=signOut;md.classList.add('ok');if(mav){mav.src=avatar||'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#e5e7eb"/><circle cx="32" cy="24" r="11" fill="#9ca3af"/><path d="M12 58c2-13 10-19 20-19s18 6 20 19" fill="#9ca3af"/></svg>');}} 
+    if(me){me.textContent=name;ma.textContent='Đăng xuất';ma.onclick=signOut;md.classList.add('ok');if(mav){mav.src=avatar||DEFAULT_AVATAR;mav.onerror=()=>{mav.onerror=null;mav.src=DEFAULT_AVATAR};}}
   }else{
     e.textContent='Chưa đăng nhập'; a.textContent='Đăng nhập'; a.onclick=openAuthModal; d.classList.remove('ok');
-    if(me){me.textContent='Chưa đăng nhập';ma.textContent='Đăng nhập GitHub';ma.onclick=openAuthModal;md.classList.remove('ok');if(mav)mav.removeAttribute('src');}
+    if(me){me.textContent='Chưa đăng nhập';ma.textContent='Đăng nhập GitHub';ma.onclick=openAuthModal;md.classList.remove('ok');if(mav){mav.src=DEFAULT_AVATAR;mav.onerror=null;}}
   }
 }
 function openAuthModal(){
