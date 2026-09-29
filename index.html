@@ -4,13 +4,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PropertyHub — Theo dõi tài sản</title>
+<title>IncomeHub — Theo dõi thu nhập</title>
 <style>
 :root{
   --bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#718096;--line:#e6eaf0;
   --primary:#5b4bdb;--primary2:#7567e8;--green:#159570;--red:#dc5b67;
   --shadow:0 8px 30px rgba(31,41,55,.07);--radius:18px;
 }
+:root[data-theme="dark"]{
+  --bg:#0b1120;--card:#111827;--text:#e5e7eb;--muted:#9ca3af;--line:#273244;
+  --primary:#8b7cf6;--primary2:#9b8ff8;--green:#34d399;--red:#fb7185;
+  --shadow:0 8px 30px rgba(0,0,0,.25);
+}
+:root[data-theme="dark"] .sidebar{background:#070b14}
+:root[data-theme="dark"] select,:root[data-theme="dark"] .input{background:#111827;color:var(--text);border-color:var(--line)}
+:root[data-theme="dark"] .btn-light{background:#111827;color:var(--text);border-color:var(--line)}
+:root[data-theme="dark"] .mobile-auth{background:#111827}
+:root[data-theme="dark"] .table th{background:#151d2b}
+:root[data-theme="dark"] .money-box,:root[data-theme="dark"] .asset-mini{background:#182131}
+:root[data-theme="dark"] .modal{background:#111827}
+:root[data-theme="dark"] .modal-head,:root[data-theme="dark"] .modal-foot{border-color:var(--line)}
+:root[data-theme="dark"] .badge{background:#29234b;color:#c4bfff}
+
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
 button,input,select,textarea{font:inherit}
@@ -89,8 +104,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
       <small>Dữ liệu</small>
       <button onclick="exportData()">↓ &nbsp; Xuất dữ liệu</button>
       <button onclick="document.getElementById('importFile').click()">↑ &nbsp; Nhập dữ liệu</button>
-      <button onclick="resetDemo()">↻ &nbsp; Khôi phục dữ liệu mẫu</button>
-    </div>
+          </div>
     <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
   </aside>
 
@@ -108,8 +122,9 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
         <button class="btn btn-light mobile-menu" onclick="alert('Trên mobile, dùng các nút điều hướng trong giao diện.')">☰</button>
         <span class="sync-pill" id="syncStatus">Chưa kết nối</span>
         <select id="yearSelect" onchange="render()"></select>
-        <button class="btn btn-primary" onclick="openJobModal()">＋ Thêm job</button>
-      </div>
+        <select id="languageSelect" class="input" onchange="setLanguage(this.value)" aria-label="Language"><option value="vi">VI</option><option value="en">EN</option><option value="ko">KO</option></select>
+        <button class="btn btn-light" id="themeToggle" onclick="toggleTheme()" title="Đổi giao diện">☾</button>
+        </div>
     </div>
 
     <section id="dashboardPage">
@@ -207,39 +222,7 @@ const DEFAULT_AVATAR='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<sv
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,flowType:'pkce'}});
 const KEY='incomehub_v1';
 const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
-const defaultData={
-  assets:[],
-  jobs:[
-    {id:'tbrain',name:'TBRAIN',type:'Freelance',color:'#4d3bd1',note:'Labeler / freelance'},
-    {id:'worldquant',name:'WORLDQUANT',type:'Freelance',color:'#0e4c78',note:'BRAIN / Alpha'},
-    {id:'24h',name:'24H',type:'Full-time',color:'#346b18',note:'Advertising Operations'}
-  ],
-  tx:[
-    {id:'t1',job:'tbrain',date:'2026-01-10',gross:4500000,tax:450000,net:4050000,note:''},
-    {id:'t2',job:'tbrain',date:'2026-01-20',gross:1136000,tax:0,net:1136000,note:''},
-    {id:'t3',job:'tbrain',date:'2026-02-10',gross:6050000,tax:605000,net:5445000,note:''},
-    {id:'t4',job:'tbrain',date:'2026-03-10',gross:29150000,tax:2915000,net:26235000,note:''},
-    {id:'t5',job:'tbrain',date:'2026-04-10',gross:3076276,tax:307628,net:2768648,note:''},
-    {id:'t6',job:'tbrain',date:'2026-05-10',gross:8695500,tax:869550,net:7825950,note:''},
-    {id:'t7',job:'tbrain',date:'2026-06-10',gross:3760708,tax:0,net:3760708,note:''},
-    {id:'t8',job:'tbrain',date:'2026-07-10',gross:5275000,tax:527500,net:4747500,note:''},
-    {id:'t9',job:'tbrain',date:'2026-08-10',gross:17419167,tax:1741917,net:15677250,note:''},
-
-    {id:'w1',job:'worldquant',date:'2026-05-10',gross:32637555,tax:3263756,net:8812140,note:''},
-    {id:'w2',job:'worldquant',date:'2026-07-10',gross:1504074,tax:0,net:406100,note:''},
-    {id:'w3',job:'worldquant',date:'2026-08-10',gross:4181227,tax:418123,net:1128931,note:''},
-
-    {id:'h1',job:'24h',date:'2026-01-10',gross:20000000,tax:0,net:20000000,note:'Tết bonus / other'},
-    {id:'h2',job:'24h',date:'2026-01-10',gross:13758943,tax:120227,net:13009320,note:''},
-    {id:'h3',job:'24h',date:'2026-02-10',gross:17826998,tax:0,net:17236900,note:''},
-    {id:'h4',job:'24h',date:'2026-03-10',gross:15534257,tax:0,net:14950160,note:''},
-    {id:'h5',job:'24h',date:'2026-04-10',gross:14586364,tax:0,net:14002260,note:''},
-    {id:'h6',job:'24h',date:'2026-05-10',gross:14016905,tax:0,net:13432800,note:''},
-    {id:'h7',job:'24h',date:'2026-06-10',gross:16868695,tax:30730,net:16253870,note:''},
-    {id:'h8',job:'24h',date:'2026-07-10',gross:16692498,tax:0,net:16108400,note:''},
-    {id:'h9',job:'24h',date:'2026-08-10',gross:14129286,tax:0,net:13545190,note:''}
-  ]
-};
+const defaultData={assets:[],jobs:[],tx:[],goals:[]};
 let data=load();
 let currentPage='dashboard';
 let currentUser=null;
@@ -247,7 +230,7 @@ let authMode='login';
 let cloudReady=false;
 let syncTimer=null;
 
-function load(){try{let x=JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData);x.assets=x.assets||[];x.goals=x.goals||[];return x}catch(e){return structuredClone(defaultData)}}
+function load(){return structuredClone(defaultData)}
 function save(){localStorage.setItem(KEY,JSON.stringify(data)); if(currentUser) queueCloudSync()}
 function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{let r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16)})}
 function ensureCloudIds(){
@@ -339,7 +322,10 @@ async function initAuth(){
           }
         },0);
       }else{
+        data=structuredClone(defaultData);
+        localStorage.removeItem(KEY);
         setSyncStatus('Đăng nhập để đồng bộ');
+        initYears();render();
       }
     });
 
@@ -376,8 +362,8 @@ function updateAuthUI(){
     e.textContent=name; a.textContent='Đăng xuất'; a.onclick=signOut; d.classList.add('ok');
     if(me){me.textContent=name;ma.textContent='Đăng xuất';ma.onclick=signOut;md.classList.add('ok');if(mav){mav.src=avatar||DEFAULT_AVATAR;mav.onerror=()=>{mav.onerror=null;mav.src=DEFAULT_AVATAR};}}
   }else{
-    e.textContent='Chưa đăng nhập'; a.textContent='Đăng nhập'; a.onclick=openAuthModal; d.classList.remove('ok');
-    if(me){me.textContent='Chưa đăng nhập';ma.textContent='Đăng nhập GitHub';ma.onclick=openAuthModal;md.classList.remove('ok');if(mav){mav.src=DEFAULT_AVATAR;mav.onerror=null;}}
+    e.textContent='Chưa đăng nhập'; a.textContent=t('login'); a.onclick=openAuthModal; d.classList.remove('ok');
+    if(me){me.textContent='Chưa đăng nhập';ma.textContent=t('loginGithub');ma.onclick=openAuthModal;md.classList.remove('ok');if(mav){mav.src=DEFAULT_AVATAR;mav.onerror=null;}}
   }
 }
 function openAuthModal(){
@@ -396,7 +382,88 @@ async function signInWithGitHub(){
   });
   if(error){err.textContent=error.message;btn.disabled=false;}
 }
-async function signOut(){await supabaseClient.auth.signOut();showToast('Đã đăng xuất')}
+async function signOut(){await supabaseClient.auth.signOut();localStorage.removeItem(KEY);data=structuredClone(defaultData);cloudReady=false;render();showToast('Đã đăng xuất')}
+const I18N={
+  vi:{title:'IncomeHub — Theo dõi thu nhập',dashboard:'Dashboard',jobs:'Các nguồn thu',transactions:'Giao dịch',assets:'Tài sản',overview:'Tổng quan',data:'Dữ liệu',export:'Xuất dữ liệu',import:'Nhập dữ liệu',login:'Đăng nhập',loginGithub:'Đăng nhập GitHub',logout:'Đăng xuất',sync:'Chưa kết nối',addJob:'＋ Thêm job',addAsset:'＋ Thêm tài sản',addTx:'＋ Thêm giao dịch',manage:'Quản lý →',all:'Tất cả nhóm',save:'Lưu',cancel:'Hủy',delete:'Xóa',edit:'Sửa',update:'Cập nhật giá trị',detail:'Chi tiết',income:'Thu nhập',gross:'GROSS',tax:'TAX',net:'NET',totalAssets:'TỔNG TÀI SẢN',principal:'VỐN GỐC',gain:'LÃI / LỖ',assetCount:'SỐ TÀI SẢN',monthly:'Thu nhập theo tháng',byJob:'Cơ cấu theo job',monthTable:'Bảng thu nhập theo tháng',jobsManage:'Quản lý nguồn thu',assetList:'Danh mục tài sản',transactionsAll:'Tất cả giao dịch',currentValue:'Giá trị hiện tại',noJobs:'Chưa có job.',noAssets:'Chưa có tài sản. Hãy thêm tài sản đầu tiên.',noData:'Chưa có dữ liệu',theme:'Đổi giao diện'},
+  en:{title:'IncomeHub — Income Tracker',dashboard:'Dashboard',jobs:'Income Sources',transactions:'Transactions',assets:'Assets',overview:'Overview',data:'Data',export:'Export data',import:'Import data',login:'Sign in',loginGithub:'Sign in with GitHub',logout:'Sign out',sync:'Not connected',addJob:'＋ Add income source',addAsset:'＋ Add asset',addTx:'＋ Add transaction',manage:'Manage →',all:'All groups',save:'Save',cancel:'Cancel',delete:'Delete',edit:'Edit',update:'Update value',detail:'Details',income:'Income',gross:'GROSS',tax:'TAX',net:'NET',totalAssets:'TOTAL ASSETS',principal:'PRINCIPAL',gain:'GAIN / LOSS',assetCount:'ASSETS',monthly:'Monthly income',byJob:'Income by source',monthTable:'Monthly income table',jobsManage:'Manage income sources',assetList:'Asset portfolio',transactionsAll:'All transactions',currentValue:'Current value',noJobs:'No income sources yet.',noAssets:'No assets yet. Add your first asset.',noData:'No data',theme:'Toggle theme'},
+  ko:{title:'IncomeHub — 수입 관리',dashboard:'대시보드',jobs:'수입원',transactions:'거래',assets:'자산',overview:'개요',data:'데이터',export:'데이터 내보내기',import:'데이터 가져오기',login:'로그인',loginGithub:'GitHub로 로그인',logout:'로그아웃',sync:'연결 안 됨',addJob:'＋ 수입원 추가',addAsset:'＋ 자산 추가',addTx:'＋ 거래 추가',manage:'관리 →',all:'전체 그룹',save:'저장',cancel:'취소',delete:'삭제',edit:'수정',update:'가치 업데이트',detail:'상세',income:'수입',gross:'GROSS',tax:'TAX',net:'NET',totalAssets:'총자산',principal:'원금',gain:'손익',assetCount:'자산 수',monthly:'월별 수입',byJob:'수입원별 구성',monthTable:'월별 수입표',jobsManage:'수입원 관리',assetList:'자산 목록',transactionsAll:'전체 거래',currentValue:'현재 가치',noJobs:'아직 수입원이 없습니다.',noAssets:'아직 자산이 없습니다. 첫 자산을 추가하세요.',noData:'데이터 없음',theme:'테마 변경'}
+};
+let language=localStorage.getItem('incomehub_lang')||'vi';
+function t(k){return (I18N[language]&&I18N[language][k])||I18N.vi[k]||k}
+function setLanguage(lang){if(!I18N[lang])lang='vi';language=lang;localStorage.setItem('incomehub_lang',lang);render();applyLanguage()}
+function toggleTheme(){const root=document.documentElement;const next=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=next;localStorage.setItem('incomehub_theme',next);updateThemeButton()}
+function updateThemeButton(){const dark=document.documentElement.dataset.theme==='dark',b=document.getElementById('themeToggle');if(b){b.textContent=dark?'☀':'☾';b.title=t('theme')}}
+function translateStaticText(){
+  const common={
+    'Dashboard thu nhập':{en:'Income Dashboard',ko:'수입 대시보드'},
+    'Theo dõi Gross · Tax · Net theo tháng và theo từng job':{en:'Track Gross · Tax · Net by month and income source',ko:'월별 및 수입원별 Gross · Tax · Net 추적'},
+    'Chưa kết nối':{en:'Not connected',ko:'연결 안 됨'},
+    'Tổng thu nhập trước thuế':{en:'Total income before tax',ko:'세전 총수입'},
+    'Tổng thuế / khấu trừ':{en:'Total tax / withholding',ko:'총 세금 / 원천징수'},
+    'Thực nhận sau thuế':{en:'Net income after tax',ko:'세후 실수령액'},
+    'Giá trị tài sản đang theo dõi':{en:'Current tracked asset value',ko:'추적 중인 자산의 현재 가치'},
+    'Thu nhập theo tháng':{en:'Monthly income',ko:'월별 수입'},
+    'Net — năm':{en:'Net — year',ko:'Net — 연도'},
+    'Cơ cấu theo job':{en:'Income by source',ko:'수입원별 구성'},
+    'Bảng thu nhập theo tháng':{en:'Monthly income table',ko:'월별 수입표'},
+    'Tự động cộng từ các giao dịch':{en:'Automatically calculated from transactions',ko:'거래에서 자동 계산'},
+    'Tài sản tích lũy':{en:'Accumulated assets',ko:'누적 자산'},
+    'Phân bổ tài sản':{en:'Asset allocation',ko:'자산 배분'},
+    'Theo nhóm':{en:'By category',ko:'그룹별'},
+    'Các nguồn thu':{en:'Income sources',ko:'수입원'},
+    'Bấm “Chi tiết” để quản lý từng job':{en:'Click “Details” to manage each source',ko:'“상세”를 눌러 각 수입원을 관리하세요'},
+    'Quản lý nguồn thu':{en:'Manage income sources',ko:'수입원 관리'},
+    'Tạo, sửa, xóa và theo dõi từng job độc lập':{en:'Create, edit, delete and track each income source independently',ko:'각 수입원을 독립적으로 생성, 수정, 삭제 및 추적'},
+    'TỔNG TÀI SẢN':{en:'TOTAL ASSETS',ko:'총자산'},
+    'VỐN GỐC':{en:'PRINCIPAL',ko:'원금'},
+    'LÃI / LỖ':{en:'GAIN / LOSS',ko:'손익'},
+    'SỐ TÀI SẢN':{en:'ASSETS',ko:'자산 수'},
+    'Giá trị hiện tại':{en:'Current value',ko:'현재 가치'},
+    'Số tiền đã bỏ vào':{en:'Amount invested',ko:'투입 금액'},
+    'Giá trị hiện tại − vốn gốc':{en:'Current value − principal',ko:'현재 가치 − 원금'},
+    'Đang theo dõi':{en:'Currently tracked',ko:'추적 중'},
+    'Danh mục tài sản':{en:'Asset portfolio',ko:'자산 목록'},
+    'Ngân hàng · Vàng · Đầu tư · Tiền mặt · BĐS...':{en:'Bank · Gold · Investments · Cash · Real estate...',ko:'은행 · 금 · 투자 · 현금 · 부동산...'},
+    'Tất cả nhóm':{en:'All categories',ko:'전체 그룹'},
+    'Tất cả giao dịch':{en:'All transactions',ko:'전체 거래'},
+    'Năm':{en:'Year',ko:'연도'},
+    'Ngày':{en:'Date',ko:'날짜'},'Job':{en:'Source',ko:'수입원'},'Ghi chú':{en:'Note',ko:'메모'},
+    'Chi tiết':{en:'Details',ko:'상세'},'＋ Thu nhập':{en:'＋ Income',ko:'＋ 수입'},
+    'Chưa có dữ liệu':{en:'No data',ko:'데이터 없음'},
+    'Chưa có job.':{en:'No income sources yet.',ko:'아직 수입원이 없습니다.'},
+    'Chưa có giao dịch trong năm này.':{en:'No transactions this year.',ko:'올해 거래가 없습니다.'},
+    'Chưa có tài sản. Hãy thêm tài sản đầu tiên.':{en:'No assets yet. Add your first asset.',ko:'아직 자산이 없습니다. 첫 자산을 추가하세요.'},
+    'Không có tài sản phù hợp.':{en:'No matching assets.',ko:'조건에 맞는 자산이 없습니다.'},
+    '＋ Thêm job':{en:'＋ Add income source',ko:'＋ 수입원 추가'},
+    '＋ Thêm tài sản':{en:'＋ Add asset',ko:'＋ 자산 추가'},
+    '＋ Thêm giao dịch':{en:'＋ Add transaction',ko:'＋ 거래 추가'},
+    'Quản lý →':{en:'Manage →',ko:'관리 →'},
+    'Xem tất cả →':{en:'View all →',ko:'모두 보기 →'},
+    'Sửa':{en:'Edit',ko:'수정'},'Xóa':{en:'Delete',ko:'삭제'},'Cập nhật giá trị':{en:'Update value',ko:'가치 업데이트'},
+    'Lưu':{en:'Save',ko:'저장'},'Hủy':{en:'Cancel',ko:'취소'},
+    'Chưa đăng nhập':{en:'Not signed in',ko:'로그인되지 않음'},
+    'Đã đồng bộ':{en:'Synced',ko:'동기화됨'},'Đang tải…':{en:'Loading…',ko:'불러오는 중…'},'Đang đồng bộ…':{en:'Syncing…',ko:'동기화 중…'},
+    'Đăng nhập để đồng bộ':{en:'Sign in to sync',ko:'동기화하려면 로그인하세요'}
+  };
+  const lang=language;
+  document.querySelectorAll('body *').forEach(el=>{
+    if(el.children.length===0){const raw=el.textContent.trim();const tr=common[raw]?.[lang];if(tr)el.textContent=tr;}
+  });
+}
+function applyLanguage(){
+  document.documentElement.lang=language;
+  document.title=t('title');
+  const ls=document.getElementById('languageSelect');if(ls)ls.value=language;
+  updateThemeButton();
+  const map={'.nav small:nth-of-type(1)':t('overview'),'.nav small:nth-of-type(2)':t('data'),'[data-page="dashboard"]':'▦  '+t('dashboard'),'[data-page="jobs"]':'▣  '+t('jobs'),'[data-page="transactions"]':'↕  '+t('transactions'),'[data-page="assets"]':'◈  '+t('assets')};
+  Object.entries(map).forEach(([sel,val])=>{const e=document.querySelector(sel);if(e)e.textContent=val});
+  const exp=document.querySelector('.nav button[onclick*="exportData"]'),imp=document.querySelector('.nav button[onclick*="importFile"]');if(exp)exp.innerHTML='↓ &nbsp; '+t('export');if(imp)imp.innerHTML='↑ &nbsp; '+t('import');
+  const ml=document.getElementById('mobileAuthLogin');if(ml&&!currentUser)ml.textContent=t('loginGithub');
+  const sb=document.querySelector('.sidebar .auth-login');if(sb&&!currentUser)sb.textContent=t('login');
+  const title=document.getElementById('pageTitle');if(title)title.textContent=pageTitleFor(currentPage);
+  translateStaticText();
+}
+(function initAppearance(){document.documentElement.dataset.theme=localStorage.getItem('incomehub_theme')||'light';})();
 function money(n){return new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+' ₫'}
 function dateParts(d){let x=new Date(d+'T00:00:00');return {y:x.getFullYear(),m:x.getMonth()+1}}
 function year(){return +document.getElementById('yearSelect').value}
@@ -424,9 +491,7 @@ function render(){
   if(currentPage==='transactions')renderTransactions();
   if(currentPage==='assets')renderAssets();
 }
-function pageTitleFor(p){
-  return p==='dashboard'?'Dashboard thu nhập':p==='jobs'?'Các nguồn thu':p==='transactions'?'Giao dịch':'Tài sản';
-}
+function pageTitleFor(p){return p==='dashboard'?t('dashboard'):p==='jobs'?t('jobsManage'):p==='transactions'?t('transactionsAll'):t('assets');}
 function renderPage(p){
   currentPage=p;
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
@@ -532,7 +597,7 @@ function openJobModal(id=null){
   let j=id?job(id):{name:'',type:'Freelance',color:'#5b4bdb',note:''};
   openModal(id?'Chỉnh sửa job':'Tạo nguồn thu mới',`
     <div class="form-grid">
-      <div class="field"><label>Tên job / nguồn thu *</label><input class="input" id="fName" value="${esc(j.name)}" placeholder="VD: TBRAIN"></div>
+      <div class="field"><label>Tên job / nguồn thu *</label><input class="input" id="fName" value="${esc(j.name)}" placeholder="VD: Tên nguồn thu"></div>
       <div class="field"><label>Loại</label><input class="input" id="fType" value="${esc(j.type||'')}" placeholder="Full-time / Freelance / Affiliate..."></div>
       <div class="field"><label>Màu nhận diện</label><input class="input" id="fColor" type="color" value="${j.color||'#5b4bdb'}" style="height:42px;padding:4px"></div>
       <div class="field full"><label>Ghi chú</label><textarea class="input" id="fNote" placeholder="Mô tả, thông tin thanh toán, deadline...">${esc(j.note||'')}</textarea></div>
@@ -587,10 +652,11 @@ function importData(e){
   let file=e.target.files[0];if(!file)return;
   let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.jobs||!x.tx)throw Error();data=x;save();initYears();render();showToast('Đã nhập dữ liệu')}catch(err){alert('File JSON không hợp lệ.')}};r.readAsText(file);e.target.value='';
 }
-function resetDemo(){if(confirm('Khôi phục dữ liệu mẫu và xóa dữ liệu hiện tại?')){data=structuredClone(defaultData);save();initYears();render();showToast('Đã khôi phục dữ liệu mẫu')}}
+function resetDemo(){if(confirm('Xóa dữ liệu cục bộ trên thiết bị này?')){data=structuredClone(defaultData);save();initYears();render();showToast('Đã xóa dữ liệu cục bộ')}}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 document.getElementById('authModal').addEventListener('click',e=>{if(e.target.id==='authModal')closeAuthModal()});
 initYears();render();
+applyLanguage();
 initAuth();
 </script>
 </body>
