@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IncomeHub — Theo dõi thu nhập</title>
+<style>
+:root{
+  --bg:#f5f7fb;--card:#fff;--text:#172033;--muted:#718096;--line:#e6eaf0;
+  --primary:#5b4bdb;--primary2:#7567e8;--green:#159570;--red:#dc5b67;
+  --shadow:0 8px 30px rgba(31,41,55,.07);--radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+.sidebar{width:250px;background:#111827;color:#fff;padding:24px 16px;position:fixed;inset:0 auto 0 0;z-index:10}
+.logo{font-size:22px;font-weight:800;padding:8px 10px 26px;display:flex;gap:10px;align-items:center}
+.logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#8c7cff,#5b4bdb);display:grid;place-items:center}
+.nav button{width:100%;border:0;background:transparent;color:#aeb7c7;text-align:left;padding:12px 14px;border-radius:11px;margin:3px 0}
+.nav button:hover,.nav button.active{background:#252d3d;color:#fff}
+.nav small{display:block;color:#697386;text-transform:uppercase;letter-spacing:.08em;padding:18px 14px 6px;font-size:10px}
+.main{margin-left:250px;width:calc(100% - 250px);padding:28px;max-width:1700px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+.title h1{font-size:28px;margin:0 0 4px}.title p{margin:0;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:10px;align-items:center}
+select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;color:var(--text)}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:#4d3ec8}
+.btn-light{background:#fff;border:1px solid var(--line);color:var(--text)}
+.btn-danger{background:#fff0f1;color:#c43d4c;border:1px solid #ffd8dc}
+.grid{display:grid;gap:16px}.stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.stat{padding:20px}.stat .label{font-size:13px;color:var(--muted)}.stat .value{font-size:27px;font-weight:800;margin-top:7px}
+.stat .sub{font-size:12px;color:var(--muted);margin-top:5px}.green{color:var(--green)}.red{color:var(--red)}
+.section{padding:20px}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px}
+.section-head h2{font-size:17px;margin:0}.muted{color:var(--muted);font-size:13px}
+.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:760px}
+.table th,.table td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:right;font-size:13px;white-space:nowrap}
+.table th:first-child,.table td:first-child{text-align:left}.table th{color:var(--muted);font-weight:600;background:#fafbfc}
+.job-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.job{padding:18px;position:relative}.job-top{display:flex;justify-content:space-between;gap:12px}.job-name{display:flex;gap:10px;align-items:center;font-weight:800}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}.job-type{font-size:11px;color:var(--muted);margin-top:3px}
+.job-money{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px}.money-box{background:#f8f9fc;padding:10px;border-radius:10px}.money-box span{display:block;font-size:10px;color:var(--muted)}.money-box b{font-size:13px;display:block;margin-top:3px}
+.job-actions{display:flex;gap:7px;margin-top:14px}.job-actions button{flex:1;padding:8px 10px;font-size:12px}
+.empty{padding:35px;text-align:center;color:var(--muted)}
+.chart{height:270px;padding:12px 20px 20px}.bars{height:210px;display:flex;align-items:end;gap:8px;border-bottom:1px solid var(--line);padding:0 4px}
+.bar-col{flex:1;height:100%;display:flex;align-items:end;justify-content:center;position:relative}.bar{width:75%;max-width:42px;border-radius:7px 7px 0 0;background:linear-gradient(180deg,var(--primary2),var(--primary));min-height:3px}.bar-col span{position:absolute;bottom:-23px;font-size:10px;color:var(--muted)}
+.two{grid-template-columns:1.4fr 1fr;margin-bottom:18px}
+.badge{font-size:10px;border-radius:99px;padding:4px 8px;background:#f0edff;color:#5545ce;font-weight:700}
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal-backdrop.show{display:flex}.modal{background:#fff;border-radius:18px;width:min(760px,100%);max-height:90vh;overflow:auto;box-shadow:0 20px 70px rgba(0,0,0,.2)}
+.modal-head{padding:20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.modal-head h3{margin:0}.modal-body{padding:20px}.modal-foot{padding:16px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}.field.full{grid-column:1/-1}.field input,.field select,.field textarea{width:100%}.field textarea{min-height:80px;resize:vertical}
+.tx-list{margin-top:15px}.tx{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.tx small{color:var(--muted)}.tx-actions{display:flex;gap:5px}
+.mobile-menu{display:none}
+.toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;z-index:100;font-size:13px}.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo"><span class="logo-mark">₫</span> IncomeHub</div>
+    <div class="nav">
+      <small>Tổng quan</small>
+      <button class="active" data-page="dashboard">▦ &nbsp; Dashboard</button>
+      <button data-page="jobs">▣ &nbsp; Các nguồn thu</button>
+      <button data-page="transactions">↕ &nbsp; Giao dịch</button>
+      <small>Dữ liệu</small>
+      <button onclick="exportData()">↓ &nbsp; Xuất dữ liệu</button>
+      <button onclick="document.getElementById('importFile').click()">↑ &nbsp; Nhập dữ liệu</button>
+      <button onclick="resetDemo()">↻ &nbsp; Khôi phục dữ liệu mẫu</button>
+    </div>
+    <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="title">
+        <h1 id="pageTitle">Dashboard thu nhập</h1>
+        <p>Theo dõi Gross · Tax · Net theo tháng và theo từng job</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-light mobile-menu" onclick="alert('Trên mobile, dùng các nút điều hướng trong giao diện.')">☰</button>
+        <select id="yearSelect" onchange="render()"></select>
+        <button class="btn btn-primary" onclick="openJobModal()">＋ Thêm job</button>
+      </div>
+    </div>
+
+    <section id="dashboardPage">
+      <div class="grid stats">
+        <div class="card stat"><div class="label">GROSS — năm <span class="yearLabel"></span></div><div class="value" id="grossTotal">0</div><div class="sub">Tổng thu nhập trước thuế</div></div>
+        <div class="card stat"><div class="label">TAX</div><div class="value red" id="taxTotal">0</div><div class="sub">Tổng thuế / khấu trừ</div></div>
+        <div class="card stat"><div class="label">NET</div><div class="value green" id="netTotal">0</div><div class="sub">Thực nhận sau thuế</div></div>
+        <div class="card stat"><div class="label">THU NHẬP BÌNH QUÂN</div><div class="value" id="avgNet">0</div><div class="sub">Theo các tháng có phát sinh</div></div>
+      </div>
+
+      <div class="grid two">
+        <div class="card section">
+          <div class="section-head"><div><h2>Thu nhập theo tháng</h2><span class="muted">Net — năm <span class="yearLabel"></span></span></div></div>
+          <div class="chart"><div class="bars" id="monthlyBars"></div></div>
+        </div>
+        <div class="card section">
+          <div class="section-head"><div><h2>Cơ cấu theo job</h2><span class="muted">Net — năm <span class="yearLabel"></span></span></div></div>
+          <div id="jobBreakdown"></div>
+        </div>
+      </div>
+
+      <div class="card section">
+        <div class="section-head"><div><h2>Bảng thu nhập theo tháng</h2><span class="muted">Tự động cộng từ các giao dịch</span></div></div>
+        <div class="table-wrap"><table class="table" id="monthTable"></table></div>
+      </div>
+
+      <div class="card section" style="margin-top:18px">
+        <div class="section-head"><div><h2>Các nguồn thu</h2><span class="muted">Bấm “Chi tiết” để quản lý từng job</span></div><button class="btn btn-light" onclick="showPage('jobs')">Xem tất cả →</button></div>
+        <div class="job-list" id="jobList"></div>
+      </div>
+    </section>
+
+    <section id="jobsPage" style="display:none">
+      <div class="card section"><div class="section-head"><div><h2>Quản lý nguồn thu</h2><span class="muted">Tạo, sửa, xóa và theo dõi từng job độc lập</span></div><button class="btn btn-primary" onclick="openJobModal()">＋ Thêm job</button></div><div class="job-list" id="allJobs"></div></div>
+    </section>
+
+    <section id="transactionsPage" style="display:none">
+      <div class="card section"><div class="section-head"><div><h2>Tất cả giao dịch</h2><span class="muted">Năm <span class="yearLabel"></span></span></div><button class="btn btn-primary" onclick="openTxModal()">＋ Thêm giao dịch</button></div><div class="table-wrap"><table class="table" id="txTable"></table></div></div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitle"></h3><button class="btn btn-light" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='incomehub_v1';
+const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+const defaultData={
+  jobs:[
+    {id:'tbrain',name:'TBRAIN',type:'Freelance',color:'#4d3bd1',note:'Labeler / freelance'},
+    {id:'worldquant',name:'WORLDQUANT',type:'Freelance',color:'#0e4c78',note:'BRAIN / Alpha'},
+    {id:'24h',name:'24H',type:'Full-time',color:'#346b18',note:'Advertising Operations'}
+  ],
+  tx:[
+    {id:'t1',job:'tbrain',date:'2026-01-10',gross:4500000,tax:450000,net:4050000,note:''},
+    {id:'t2',job:'tbrain',date:'2026-01-20',gross:1136000,tax:0,net:1136000,note:''},
+    {id:'t3',job:'tbrain',date:'2026-02-10',gross:6050000,tax:605000,net:5445000,note:''},
+    {id:'t4',job:'tbrain',date:'2026-03-10',gross:29150000,tax:2915000,net:26235000,note:''},
+    {id:'t5',job:'tbrain',date:'2026-04-10',gross:3076276,tax:307628,net:2768648,note:''},
+    {id:'t6',job:'tbrain',date:'2026-05-10',gross:8695500,tax:869550,net:7825950,note:''},
+    {id:'t7',job:'tbrain',date:'2026-06-10',gross:3760708,tax:0,net:3760708,note:''},
+    {id:'t8',job:'tbrain',date:'2026-07-10',gross:5275000,tax:527500,net:4747500,note:''},
+    {id:'t9',job:'tbrain',date:'2026-08-10',gross:17419167,tax:1741917,net:15677250,note:''},
+
+    {id:'w1',job:'worldquant',date:'2026-05-10',gross:32637555,tax:3263756,net:8812140,note:''},
+    {id:'w2',job:'worldquant',date:'2026-07-10',gross:1504074,tax:0,net:406100,note:''},
+    {id:'w3',job:'worldquant',date:'2026-08-10',gross:4181227,tax:418123,net:1128931,note:''},
+
+    {id:'h1',job:'24h',date:'2026-01-10',gross:20000000,tax:0,net:20000000,note:'Tết bonus / other'},
+    {id:'h2',job:'24h',date:'2026-01-10',gross:13758943,tax:120227,net:13009320,note:''},
+    {id:'h3',job:'24h',date:'2026-02-10',gross:17826998,tax:0,net:17236900,note:''},
+    {id:'h4',job:'24h',date:'2026-03-10',gross:15534257,tax:0,net:14950160,note:''},
+    {id:'h5',job:'24h',date:'2026-04-10',gross:14586364,tax:0,net:14002260,note:''},
+    {id:'h6',job:'24h',date:'2026-05-10',gross:14016905,tax:0,net:13432800,note:''},
+    {id:'h7',job:'24h',date:'2026-06-10',gross:16868695,tax:30730,net:16253870,note:''},
+    {id:'h8',job:'24h',date:'2026-07-10',gross:16692498,tax:0,net:16108400,note:''},
+    {id:'h9',job:'24h',date:'2026-08-10',gross:14129286,tax:0,net:13545190,note:''}
+  ]
+};
+let data=load();
+let currentPage='dashboard';
+
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData)}catch(e){return structuredClone(defaultData)}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function money(n){return new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+' ₫'}
+function dateParts(d){let x=new Date(d+'T00:00:00');return {y:x.getFullYear(),m:x.getMonth()+1}}
+function year(){return +document.getElementById('yearSelect').value}
+function job(id){return data.jobs.find(x=>x.id===id)}
+function net(t){return t.net!==undefined ? (+t.net||0) : ((+t.gross||0)-(+t.tax||0))}
+function txYear(y){return data.tx.filter(t=>dateParts(t.date).y===y)}
+function sum(arr,key){return arr.reduce((a,b)=>a+(+b[key]||0),0)}
+function showToast(s){let e=document.getElementById('toast');e.textContent=s;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1800)}
+
+function initYears(){
+  let years=new Set([new Date().getFullYear(),...data.tx.map(t=>dateParts(t.date).y)]);
+  let s=document.getElementById('yearSelect'), old=s.value;
+  s.innerHTML=[...years].sort((a,b)=>b-a).map(y=>`<option>${y}</option>`).join('');
+  if([...years].includes(+old))s.value=old;
+  document.querySelectorAll('.yearLabel').forEach(e=>e.textContent=year());
+}
+function render(){
+  initYears();document.querySelectorAll('.yearLabel').forEach(e=>e.textContent=year());
+  if(currentPage==='dashboard')renderDashboard();
+  if(currentPage==='jobs')renderJobs();
+  if(currentPage==='transactions')renderTransactions();
+}
+function showPage(p){
+  currentPage=p;
+  document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===p));
+  document.getElementById('dashboardPage').style.display=p==='dashboard'?'block':'none';
+  document.getElementById('jobsPage').style.display=p==='jobs'?'block':'none';
+  document.getElementById('transactionsPage').style.display=p==='transactions'?'block':'none';
+  document.getElementById('pageTitle').textContent=p==='dashboard'?'Dashboard thu nhập':p==='jobs'?'Các nguồn thu':'Giao dịch';
+  render();
+}
+document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+
+function renderDashboard(){
+  let y=year(), tx=txYear(y), gross=sum(tx,'gross'),tax=sum(tx,'tax'),nt=tx.reduce((a,t)=>a+net(t),0);
+  document.getElementById('grossTotal').textContent=money(gross);
+  document.getElementById('taxTotal').textContent=money(tax);
+  document.getElementById('netTotal').textContent=money(nt);
+  let active=[...Array(12)].map((_,i)=>tx.filter(t=>dateParts(t.date).m===i+1)).filter(a=>a.length);
+  document.getElementById('avgNet').textContent=money(active.length?active.reduce((a,b)=>a+b.reduce((x,t)=>x+net(t),0),0)/active.length:0);
+  let monthNet=[...Array(12)].map((_,i)=>{let a=tx.filter(t=>dateParts(t.date).m===i+1);return a.reduce((x,t)=>x+net(t),0)});
+  let max=Math.max(...monthNet,1);
+  document.getElementById('monthlyBars').innerHTML=monthNet.map((v,i)=>`<div class="bar-col"><div class="bar" title="${money(v)}" style="height:${Math.max(2,v/max*100)}%"></div><span>${months[i]}</span></div>`).join('');
+  let by=data.jobs.map(j=>({j,v:tx.filter(t=>t.job===j.id).reduce((a,t)=>a+net(t),0)})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  document.getElementById('jobBreakdown').innerHTML=by.length?by.map(x=>`<div style="margin:14px 0"><div style="display:flex;justify-content:space-between;font-size:13px"><span><i class="dot" style="background:${x.j.color};margin-right:7px"></i>${x.j.name}</span><b>${money(x.v)}</b></div><div style="height:7px;background:#eef0f5;border-radius:99px;margin-top:7px"><div style="height:100%;width:${x.v/by[0].v*100}%;background:${x.j.color};border-radius:99px"></div></div></div>`).join(''):'<div class="empty">Chưa có dữ liệu</div>';
+  let head='<thead><tr><th>Tháng</th>'+data.jobs.map(j=>`<th>${j.name} — Net</th>`).join('')+'<th>Tổng Net</th></tr></thead><tbody>';
+  let rows=[...Array(12)].map((_,i)=>{let vals=data.jobs.map(j=>tx.filter(t=>t.job===j.id&&dateParts(t.date).m===i+1).reduce((a,t)=>a+net(t),0));return `<tr><td><b>${months[i]}</b></td>${vals.map(v=>`<td>${v?money(v):'—'}</td>`).join('')}<td><b>${money(vals.reduce((a,b)=>a+b,0))}</b></td></tr>`}).join('');
+  document.getElementById('monthTable').innerHTML=head+rows+'</tbody>';
+  document.getElementById('jobList').innerHTML=data.jobs.length?data.jobs.slice(0,6).map(jobCard).join(''):'<div class="empty">Chưa có job. Hãy thêm job đầu tiên.</div>';
+}
+function jobCard(j){
+  let tx=txYear(year()).filter(t=>t.job===j.id),g=sum(tx,'gross'),t=sum(tx,'tax');
+  return `<div class="card job"><div class="job-top"><div><div class="job-name"><i class="dot" style="background:${j.color}"></i>${j.name}</div><div class="job-type">${j.type||'Khác'}</div></div><span class="badge">${tx.length} giao dịch</span></div><div class="job-money"><div class="money-box"><span>GROSS</span><b>${money(g)}</b></div><div class="money-box"><span>TAX</span><b class="red">${money(t)}</b></div><div class="money-box"><span>NET</span><b class="green">${money(g-t)}</b></div></div><div class="job-actions"><button class="btn btn-light" onclick="openJobDetail('${j.id}')">Chi tiết</button><button class="btn btn-light" onclick="openTxModal(null,'${j.id}')">＋ Thu nhập</button></div></div>`;
+}
+function renderJobs(){document.getElementById('allJobs').innerHTML=data.jobs.length?data.jobs.map(jobCard).join(''):'<div class="empty">Chưa có job.</div>'}
+function renderTransactions(){
+  let tx=txYear(year()).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('txTable').innerHTML='<thead><tr><th>Ngày</th><th>Job</th><th>GROSS</th><th>TAX</th><th>NET</th><th>Ghi chú</th><th></th></tr></thead><tbody>'+
+  (tx.length?tx.map(t=>`<tr><td>${t.date}</td><td><b>${job(t.job)?.name||'—'}</b></td><td>${money(t.gross)}</td><td class="red">${money(t.tax)}</td><td class="green"><b>${money(net(t))}</b></td><td>${t.note||'—'}</td><td><button class="btn btn-light" onclick="openTxModal('${t.id}')">Sửa</button> <button class="btn btn-danger" onclick="deleteTx('${t.id}')">Xóa</button></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty">Chưa có giao dịch trong năm này.</div></td></tr>')+'</tbody>';
+}
+
+function openModal(title,body,foot){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modalFoot').innerHTML=foot||'';document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function openJobModal(id=null){
+  let j=id?job(id):{name:'',type:'Freelance',color:'#5b4bdb',note:''};
+  openModal(id?'Chỉnh sửa job':'Tạo nguồn thu mới',`
+    <div class="form-grid">
+      <div class="field"><label>Tên job / nguồn thu *</label><input class="input" id="fName" value="${esc(j.name)}" placeholder="VD: TBRAIN"></div>
+      <div class="field"><label>Loại</label><input class="input" id="fType" value="${esc(j.type||'')}" placeholder="Full-time / Freelance / Affiliate..."></div>
+      <div class="field"><label>Màu nhận diện</label><input class="input" id="fColor" type="color" value="${j.color||'#5b4bdb'}" style="height:42px;padding:4px"></div>
+      <div class="field full"><label>Ghi chú</label><textarea class="input" id="fNote" placeholder="Mô tả, thông tin thanh toán, deadline...">${esc(j.note||'')}</textarea></div>
+    </div>`,
+    `<button class="btn btn-light" onclick="closeModal()">Hủy</button><button class="btn btn-primary" onclick="saveJob('${id||''}')">Lưu job</button>`);
+}
+function saveJob(id){
+  let name=document.getElementById('fName').value.trim();if(!name)return alert('Vui lòng nhập tên job.');
+  let obj={name,type:document.getElementById('fType').value.trim(),color:document.getElementById('fColor').value,note:document.getElementById('fNote').value.trim()};
+  if(id)Object.assign(job(id),obj);else data.jobs.push({id:'j_'+Date.now(),...obj});
+  save();closeModal();render();showToast('Đã lưu job');
+}
+function deleteJob(id){
+  if(data.tx.some(t=>t.job===id)){if(!confirm('Job này đang có giao dịch. Xóa job sẽ xóa luôn các giao dịch của job. Tiếp tục?'))return;data.tx=data.tx.filter(t=>t.job!==id)}
+  data.jobs=data.jobs.filter(j=>j.id!==id);save();closeModal();render();showToast('Đã xóa job');
+}
+function openJobDetail(id){
+  let j=job(id),tx=data.tx.filter(t=>t.job===id&&dateParts(t.date).y===year()).sort((a,b)=>b.date.localeCompare(a.date));
+  openModal(j.name,`<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px"><i class="dot" style="background:${j.color}"></i><b>${j.type||'Khác'}</b><span class="muted">${j.note||''}</span></div><div class="job-money"><div class="money-box"><span>GROSS</span><b>${money(sum(tx,'gross'))}</b></div><div class="money-box"><span>TAX</span><b class="red">${money(sum(tx,'tax'))}</b></div><div class="money-box"><span>NET</span><b class="green">${money(sum(tx,'gross')-sum(tx,'tax'))}</b></div></div><div class="tx-list">${tx.length?tx.map(t=>`<div class="tx"><div><b>${t.date}</b><br><small>${t.note||'Không có ghi chú'}</small></div><div style="text-align:right"><b class="green">${money(net(t))}</b><br><small>Gross ${money(t.gross)} · Tax ${money(t.tax)}</small></div><div class="tx-actions"><button class="btn btn-light" onclick="openTxModal('${t.id}')">Sửa</button></div></div>`).join(''):'<div class="empty">Chưa có giao dịch trong năm này.</div>'}</div>`,
+  `<button class="btn btn-light" onclick="openJobModal('${id}')">Chỉnh sửa job</button><button class="btn btn-light" onclick="openTxModal(null,'${id}')">＋ Thêm giao dịch</button><button class="btn btn-danger" onclick="deleteJob('${id}')">Xóa job</button>`);
+}
+function openTxModal(id=null,presetJob=''){
+  let t=id?data.tx.find(x=>x.id===id):{date:`${year()}-${String(new Date().getMonth()+1).padStart(2,'0')}-01`,job:presetJob||data.jobs[0]?.id||'',gross:'',tax:'',note:''};
+  openModal(id?'Sửa giao dịch':'Thêm giao dịch',`
+  <div class="form-grid">
+    <div class="field"><label>Ngày *</label><input class="input" id="txDate" type="date" value="${t.date}"></div>
+    <div class="field"><label>Job *</label><select class="input" id="txJob">${data.jobs.map(j=>`<option value="${j.id}" ${j.id===t.job?'selected':''}>${j.name}</option>`).join('')}</select></div>
+    <div class="field"><label>Gross income</label><input class="input" id="txGross" type="number" value="${t.gross}"></div>
+    <div class="field"><label>Tax / khấu trừ</label><input class="input" id="txTax" type="number" value="${t.tax}"></div>
+    <div class="field"><label>Net income</label><input class="input" id="txNet" type="number" value="${t.net!==undefined?t.net:((+t.gross||0)-(+t.tax||0))}"></div>
+    <div class="field full"><label>Ghi chú</label><textarea class="input" id="txNote">${esc(t.note||'')}</textarea></div>
+  </div>
+  <p class="muted" style="margin-bottom:0">Net có thể nhập độc lập để khớp với số tiền thực nhận/payout. Nếu Gross − Tax đúng bằng Net thì nhập đúng công thức đó; Tax = 0 nếu không có khấu trừ.</p>`,
+  `<button class="btn btn-light" onclick="closeModal()">Hủy</button>${id?`<button class="btn btn-danger" onclick="deleteTx('${id}')">Xóa</button>`:''}<button class="btn btn-primary" onclick="saveTx('${id||''}')">Lưu</button>`);
+}
+function saveTx(id){
+  let date=document.getElementById('txDate').value,jobId=document.getElementById('txJob').value;
+  if(!date||!jobId)return alert('Vui lòng nhập ngày và job.');
+  let obj={date,job:jobId,gross:+document.getElementById('txGross').value||0,tax:+document.getElementById('txTax').value||0,net:+document.getElementById('txNet').value||0,note:document.getElementById('txNote').value.trim()};
+  if(id)Object.assign(data.tx.find(x=>x.id===id),obj);else data.tx.push({id:'t_'+Date.now(),...obj});
+  save();closeModal();initYears();render();showToast('Đã lưu giao dịch');
+}
+function deleteTx(id){
+  if(!confirm('Xóa giao dịch này?'))return;
+  data.tx=data.tx.filter(t=>t.id!==id);save();closeModal();render();showToast('Đã xóa giao dịch');
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function exportData(){
+  let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='incomehub-backup.json';a.click();URL.revokeObjectURL(a.href);showToast('Đã xuất file backup');
+}
+function importData(e){
+  let file=e.target.files[0];if(!file)return;
+  let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.jobs||!x.tx)throw Error();data=x;save();initYears();render();showToast('Đã nhập dữ liệu')}catch(err){alert('File JSON không hợp lệ.')}};r.readAsText(file);e.target.value='';
+}
+function resetDemo(){if(confirm('Khôi phục dữ liệu mẫu và xóa dữ liệu hiện tại?')){data=structuredClone(defaultData);save();initYears();render();showToast('Đã khôi phục dữ liệu mẫu')}}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+initYears();render();
+</script>
+</body>
+</html>
