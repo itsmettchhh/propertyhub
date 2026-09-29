@@ -58,6 +58,11 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}.field.full{grid-column:1/-1}.field input,.field select,.field textarea{width:100%}.field textarea{min-height:80px;resize:vertical}
 .tx-list{margin-top:15px}.tx{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.tx small{color:var(--muted)}.tx-actions{display:flex;gap:5px}
 .mobile-menu{display:none}
+.mobile-auth{display:none}
+.mobile-auth-status{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.mobile-auth-status .auth-email{color:var(--text);font-size:12px}
+.mobile-auth-status .auth-login{color:var(--primary);font-size:12px}
+.mobile-auth .auth-dot{flex:0 0 auto}
 .auth-status{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#1b2433;border:1px solid #30394a;border-radius:12px;font-size:11px;color:#cbd5e1}
 .auth-dot{width:8px;height:8px;border-radius:50%;background:#64748b}.auth-dot.ok{background:#22c55e}
 .auth-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
@@ -66,7 +71,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 
 .toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;z-index:100;font-size:13px}.toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list,.asset-list{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
-@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+@media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.mobile-auth{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;margin-bottom:12px;box-shadow:var(--shadow)}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -89,6 +94,10 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
   </aside>
 
   <main class="main">
+    <div class="mobile-auth" id="mobileAuthStatus">
+      <div class="mobile-auth-status"><span class="auth-dot" id="mobileAuthDot"></span><span class="auth-email" id="mobileAuthEmail">Chưa đăng nhập</span></div>
+      <a class="auth-login" id="mobileAuthLogin" onclick="openAuthModal()">Đăng nhập</a>
+    </div>
     <div class="topbar">
       <div class="title">
         <h1 id="pageTitle">Dashboard thu nhập</h1>
@@ -356,13 +365,16 @@ async function initAuth(){
   }
 }
 function updateAuthUI(){
-  let e=document.getElementById('authEmail'),a=document.querySelector('.auth-login');
+  const e=document.getElementById('authEmail'),a=document.querySelector('.sidebar .auth-login'),d=document.getElementById('authDot');
+  const me=document.getElementById('mobileAuthEmail'),ma=document.getElementById('mobileAuthLogin'),md=document.getElementById('mobileAuthDot');
   if(currentUser){
     const m=currentUser.user_metadata||{};
-    e.textContent=m.user_name||m.preferred_username||m.full_name||currentUser.email||'Đã đăng nhập';
-    a.textContent='Đăng xuất';a.onclick=signOut;
+    const name=m.user_name||m.preferred_username||m.full_name||currentUser.email||'Đã đăng nhập';
+    e.textContent=name; a.textContent='Đăng xuất'; a.onclick=signOut; d.classList.add('ok');
+    if(me){me.textContent=name;ma.textContent='Đăng xuất';ma.onclick=signOut;md.classList.add('ok');}
   }else{
-    e.textContent='Chưa đăng nhập';a.textContent='Đăng nhập';a.onclick=openAuthModal;
+    e.textContent='Chưa đăng nhập'; a.textContent='Đăng nhập'; a.onclick=openAuthModal; d.classList.remove('ok');
+    if(me){me.textContent='Chưa đăng nhập';ma.textContent='Đăng nhập';ma.onclick=openAuthModal;md.classList.remove('ok');}
   }
 }
 function openAuthModal(){
@@ -461,7 +473,6 @@ function renderDashboard(){
   document.getElementById('assetTotal').textContent=money(assetTotal());
   renderAssetDashboard();
   let active=[...Array(12)].map((_,i)=>tx.filter(t=>dateParts(t.date).m===i+1)).filter(a=>a.length);
-  document.getElementById('avgNet').textContent=money(active.length?active.reduce((a,b)=>a+b.reduce((x,t)=>x+net(t),0),0)/active.length:0);
   let monthNet=[...Array(12)].map((_,i)=>{let a=tx.filter(t=>dateParts(t.date).m===i+1);return a.reduce((x,t)=>x+net(t),0)});
   let max=Math.max(...monthNet,1);
   document.getElementById('monthlyBars').innerHTML=monthNet.map((v,i)=>`<div class="bar-col"><div class="bar" title="${money(v)}" style="height:${Math.max(2,v/max*100)}%"></div><span>${months[i]}</span></div>`).join('');
