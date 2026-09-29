@@ -57,6 +57,12 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:6px}.field.full{grid-column:1/-1}.field input,.field select,.field textarea{width:100%}.field textarea{min-height:80px;resize:vertical}
 .tx-list{margin-top:15px}.tx{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.tx small{color:var(--muted)}.tx-actions{display:flex;gap:5px}
 .mobile-menu{display:none}
+.auth-status{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:#1b2433;border:1px solid #30394a;border-radius:12px;font-size:11px;color:#cbd5e1}
+.auth-dot{width:8px;height:8px;border-radius:50%;background:#64748b}.auth-dot.ok{background:#22c55e}
+.auth-email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.auth-login{color:#fff;text-decoration:none;font-weight:700;cursor:pointer}
+.sync-pill{font-size:11px;padding:5px 9px;border-radius:999px;background:#eef2ff;color:#4f46e5;font-weight:700}
+
 .toast{position:fixed;right:20px;bottom:20px;background:#111827;color:#fff;padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;z-index:100;font-size:13px}.toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}.job-list,.asset-list{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
 @media(max-width:760px){.sidebar{display:none}.main{margin-left:0;width:100%;padding:18px}.mobile-menu{display:block}.topbar{align-items:flex-start}.actions{flex-wrap:wrap}.stats,.job-list,.asset-list{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
@@ -66,6 +72,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 <div class="app">
   <aside class="sidebar">
     <div class="logo"><span class="logo-mark">₫</span> IncomeHub</div>
+    <div class="auth-status" id="authStatus"><span class="auth-dot" id="authDot"></span><span class="auth-email" id="authEmail">Chưa đăng nhập</span><a class="auth-login" onclick="openAuthModal()">Đăng nhập</a></div>
     <div class="nav">
       <small>Tổng quan</small>
       <button class="active" data-page="dashboard">▦ &nbsp; Dashboard</button>
@@ -88,6 +95,7 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
       </div>
       <div class="actions">
         <button class="btn btn-light mobile-menu" onclick="alert('Trên mobile, dùng các nút điều hướng trong giao diện.')">☰</button>
+        <span class="sync-pill" id="syncStatus">Chưa kết nối</span>
         <select id="yearSelect" onchange="render()"></select>
         <button class="btn btn-primary" onclick="openJobModal()">＋ Thêm job</button>
       </div>
@@ -157,6 +165,20 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
   </main>
 </div>
 
+<div class="modal-backdrop" id="authModal">
+  <div class="modal" style="width:min(460px,100%)">
+    <div class="modal-head"><h3 id="authTitle">Đăng nhập IncomeHub</h3><button class="btn btn-light" onclick="closeAuthModal()">✕</button></div>
+    <div class="modal-body">
+      <p class="muted" id="authHint">Đăng nhập bằng tài khoản GitHub để dữ liệu IncomeHub được đồng bộ giữa máy tính và điện thoại.</p>
+      <button class="btn btn-primary" id="githubAuthBtn" onclick="signInWithGitHub()" style="width:100%;justify-content:center;font-size:15px;padding:12px 16px">↗&nbsp; Đăng nhập bằng GitHub</button>
+      <div id="authError" class="red" style="margin-top:12px;font-size:13px"></div>
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end">
+      <button class="btn btn-light" onclick="closeAuthModal()">Hủy</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal">
   <div class="modal">
     <div class="modal-head"><h3 id="modalTitle"></h3><button class="btn btn-light" onclick="closeModal()">✕</button></div>
@@ -166,7 +188,11 @@ select,.input{background:#fff;border:1px solid var(--line);border-radius:10px;pa
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL='https://kgjcymuxdwrjahreclrz.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_owwMUsdL9HvA1diqdfzK-Q_kxCfjX83';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const KEY='incomehub_v1';
 const months=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
 const defaultData={
@@ -204,9 +230,98 @@ const defaultData={
 };
 let data=load();
 let currentPage='dashboard';
+let currentUser=null;
+let authMode='login';
+let cloudReady=false;
+let syncTimer=null;
 
-function load(){try{let x=JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData);x.assets=x.assets||[];return x}catch(e){return structuredClone(defaultData)}}
-function save(){localStorage.setItem(KEY,JSON.stringify(data))}
+function load(){try{let x=JSON.parse(localStorage.getItem(KEY))||structuredClone(defaultData);x.assets=x.assets||[];x.goals=x.goals||[];return x}catch(e){return structuredClone(defaultData)}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data)); if(currentUser) queueCloudSync()}
+function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{let r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16)})}
+function ensureCloudIds(){
+  const isUuid=id=>/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id||'');
+  const jobMap={};
+  data.jobs.forEach(j=>{const old=j.id;if(!isUuid(j.id))j.id=uuid();if(old!==j.id)jobMap[old]=j.id});
+  data.tx.forEach(t=>{if(jobMap[t.job])t.job=jobMap[t.job];if(!isUuid(t.id))t.id=uuid()});
+  data.assets.forEach(a=>{if(!isUuid(a.id))a.id=uuid()});
+  data.goals.forEach(g=>{if(!isUuid(g.id))g.id=uuid()});
+}
+function setSyncStatus(text,ok=false){let e=document.getElementById('syncStatus'),d=document.getElementById('authDot');if(e)e.textContent=text;if(d)d.className='auth-dot'+(ok?' ok':'')}
+function queueCloudSync(){clearTimeout(syncTimer);syncTimer=setTimeout(syncAllToCloud,350)}
+async function syncAllToCloud(){
+  if(!currentUser||!cloudReady)return;
+  try{
+    ensureCloudIds();
+    setSyncStatus('Đang đồng bộ…');
+    const uid=currentUser.id;
+    await supabaseClient.from('asset_history').delete().eq('user_id',uid);
+    await supabaseClient.from('goals').delete().eq('user_id',uid);
+    await supabaseClient.from('transactions').delete().eq('user_id',uid);
+    await supabaseClient.from('assets').delete().eq('user_id',uid);
+    await supabaseClient.from('jobs').delete().eq('user_id',uid);
+    if(data.jobs.length){let rows=data.jobs.map(j=>({id:j.id,user_id:uid,name:j.name,type:j.type||'income',color:j.color||'#6366f1',note:j.note||null}));let r=await supabaseClient.from('jobs').insert(rows);if(r.error)throw r.error}
+    if(data.tx.length){let rows=data.tx.map(t=>({id:t.id,user_id:uid,job_id:t.job,date:t.date,gross:+t.gross||0,tax:+t.tax||0,net:net(t),status:t.status||'received',note:t.note||null}));let r=await supabaseClient.from('transactions').insert(rows);if(r.error)throw r.error}
+    if(data.assets.length){let rows=data.assets.map(a=>({id:a.id,user_id:uid,name:a.name,category:a.category,institution:a.institution||null,principal:+a.cost||0,current_value:+a.value||0,expected_rate:a.rate!==''&&a.rate!=null?(+a.rate||0):null,maturity_date:a.maturity||null,note:a.note||null,color:a.color||'#10b981'}));let r=await supabaseClient.from('assets').insert(rows);if(r.error)throw r.error;let h=[];data.assets.forEach(a=>(a.history||[]).forEach(v=>h.push({user_id:uid,asset_id:a.id,date:v.date,value:+v.value||0,note:null})));if(h.length){r=await supabaseClient.from('asset_history').insert(h);if(r.error)throw r.error}}
+    if(data.goals.length){let rows=data.goals.map(g=>({id:g.id,user_id:uid,name:g.name,target_amount:+g.target_amount||+g.target||0,current_amount:+g.current_amount||+g.current||0,deadline:g.deadline||null,note:g.note||null,color:g.color||'#f59e0b'}));let r=await supabaseClient.from('goals').insert(rows);if(r.error)throw r.error}
+    localStorage.setItem(KEY,JSON.stringify(data));
+    setSyncStatus('Đã đồng bộ',true);
+  }catch(e){console.error(e);setSyncStatus('Lỗi đồng bộ');showToast('Không đồng bộ được: '+(e.message||'kiểm tra Supabase/RLS'))}
+}
+async function loadCloudData(){
+  if(!currentUser)return false;
+  setSyncStatus('Đang tải…');
+  const uid=currentUser.id;
+  const [jr,tr,ar,hr,gr]=await Promise.all([
+    supabaseClient.from('jobs').select('*').eq('user_id',uid).order('created_at'),
+    supabaseClient.from('transactions').select('*').eq('user_id',uid).order('date'),
+    supabaseClient.from('assets').select('*').eq('user_id',uid).order('created_at'),
+    supabaseClient.from('asset_history').select('*').eq('user_id',uid).order('date'),
+    supabaseClient.from('goals').select('*').eq('user_id',uid).order('created_at')
+  ]);
+  for(const r of [jr,tr,ar,hr,gr])if(r.error)throw r.error;
+  if(!jr.data.length&&!tr.data.length&&!ar.data.length&&!gr.data.length){ensureCloudIds();await syncAllToCloud();return false}
+  const histories=hr.data||[];
+  data={
+    jobs:(jr.data||[]).map(j=>({id:j.id,name:j.name,type:j.type||'income',color:j.color||'#6366f1',note:j.note||''})),
+    tx:(tr.data||[]).map(t=>({id:t.id,job:t.job_id,date:t.date,gross:+t.gross||0,tax:+t.tax||0,net:+t.net||0,status:t.status||'received',note:t.note||''})),
+    assets:(ar.data||[]).map(a=>({id:a.id,name:a.name,category:a.category,institution:a.institution||'',value:+a.current_value||0,cost:+a.principal||0,rate:a.expected_rate??'',maturity:a.maturity_date||'',color:a.color||'#5b4bdb',note:a.note||'',updated:(histories.filter(h=>h.asset_id===a.id).sort((x,y)=>y.date.localeCompare(x.date))[0]?.date)||new Date().toISOString().slice(0,10),history:histories.filter(h=>h.asset_id===a.id).map(h=>({date:h.date,value:+h.value||0}))})),
+    goals:(gr.data||[]).map(g=>({id:g.id,name:g.name,target_amount:+g.target_amount||0,current_amount:+g.current_amount||0,deadline:g.deadline||'',note:g.note||'',color:g.color||'#f59e0b'}))
+  };
+  localStorage.setItem(KEY,JSON.stringify(data));
+  cloudReady=true;setSyncStatus('Đã đồng bộ',true);initYears();render();return true;
+}
+async function initAuth(){
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session){currentUser=session.user;cloudReady=true;updateAuthUI();try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu')}}else{updateAuthUI();setSyncStatus('Đăng nhập để đồng bộ')}
+  supabaseClient.auth.onAuthStateChange(async(_event,session)=>{currentUser=session?.user||null;cloudReady=!!currentUser;updateAuthUI();if(currentUser){try{await loadCloudData()}catch(e){console.error(e);setSyncStatus('Lỗi tải dữ liệu')}}else setSyncStatus('Đăng nhập để đồng bộ')});
+}
+function updateAuthUI(){
+  let e=document.getElementById('authEmail'),a=document.querySelector('.auth-login');
+  if(currentUser){
+    const m=currentUser.user_metadata||{};
+    e.textContent=m.user_name||m.preferred_username||m.full_name||currentUser.email||'Đã đăng nhập';
+    a.textContent='Đăng xuất';a.onclick=signOut;
+  }else{
+    e.textContent='Chưa đăng nhập';a.textContent='Đăng nhập';a.onclick=openAuthModal;
+  }
+}
+function openAuthModal(){
+  document.getElementById('authTitle').textContent='Đăng nhập IncomeHub';
+  document.getElementById('authHint').textContent='Đăng nhập bằng tài khoản GitHub để dữ liệu IncomeHub được đồng bộ giữa máy tính và điện thoại.';
+  document.getElementById('authError').textContent='';
+  document.getElementById('authModal').classList.add('show');
+}
+function closeAuthModal(){document.getElementById('authModal').classList.remove('show')}
+async function signInWithGitHub(){
+  const err=document.getElementById('authError'),btn=document.getElementById('githubAuthBtn');
+  err.textContent='Đang chuyển sang GitHub…';btn.disabled=true;
+  const {error}=await supabaseClient.auth.signInWithOAuth({
+    provider:'github',
+    options:{redirectTo:'https://itsmettchhh.github.io/propertyhub/'}
+  });
+  if(error){err.textContent=error.message;btn.disabled=false;}
+}
+async function signOut(){await supabaseClient.auth.signOut();showToast('Đã đăng xuất')}
 function money(n){return new Intl.NumberFormat('vi-VN').format(Math.round(n||0))+' ₫'}
 function dateParts(d){let x=new Date(d+'T00:00:00');return {y:x.getFullYear(),m:x.getMonth()+1}}
 function year(){return +document.getElementById('yearSelect').value}
@@ -368,7 +483,9 @@ function importData(e){
 }
 function resetDemo(){if(confirm('Khôi phục dữ liệu mẫu và xóa dữ liệu hiện tại?')){data=structuredClone(defaultData);save();initYears();render();showToast('Đã khôi phục dữ liệu mẫu')}}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.getElementById('authModal').addEventListener('click',e=>{if(e.target.id==='authModal')closeAuthModal()});
 initYears();render();
+initAuth();
 </script>
 </body>
 </html>
